@@ -1,0 +1,46 @@
+## Interface: 11200
+## Title: Simple: |cff1a9fc0UI|r
+## Author: Rasta
+## Version: 1.0
+## Notes: Completely Simple UI replacement
+## SavedVariables: SimpleUIDB
+## SavedVariablesPerCharacter: SimpleUIProfile
+
+Embeds\AceLibrary\AceLibrary.lua
+Embeds\AceOO-2.0\AceOO-2.0.lua
+Embeds\AceAddon-2.0\AceAddon-2.0.lua
+Embeds\AceConsole-2.0\AceConsole-2.0.lua
+Embeds\AceLocale-2.2\AceLocale-2.2.lua
+Embeds\AceEvent-2.0\AceEvent-2.0.lua
+Embeds\Dewdrop-2.0\Dewdrop-2.0.lua
+Embeds\Tablet-2.0\Tablet-2.0.lua
+Embeds\FuBarPlugin-2.0\FuBarPlugin-2.0.lua
+
+SimpleUI.lua
+Locales\enUS.lua
+Media\assets.lua
+Modules\Database.lua
+Modules\Config.lua
+
+Utility\_helpers.lua
+Utility\_range.lua
+Utility\_tipscan.lua
+Utility\_cast.lua
+Utility\_spell.lua
+Utility\_cooldown.lua
+Utility\Debuffs.xml
+
+Modules\UI\Actionbar.lua
+Modules\UI\Microbar.lua
+Modules\UI\Minimap.lua
+Modules\UI\Wonderbar.lua
+Modules\UI\DarkUI.lua
+
+Modules\Unitframes\Elements\Buff.lua
+Modules\Unitframes\Elements\Debuff.lua
+Modules\Unitframes\Unitframe.lua
+Modules\UI\Castbar.lua
+Modules\UI\BuffBar.lua
+
+Modules\UI\PallyPower\PallyPower.lua
+Modules\UI\PallyPower\PallyPower.xml

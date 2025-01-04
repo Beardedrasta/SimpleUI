@@ -1,0 +1,580 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+
+    <Script file="Modules\UI\PallyPower\PallyPower.lua" />
+
+    <Button name="SimplePowerResizeTemplate" virtual="true">
+        <Size>
+            <AbsDimension x="16" y="16" />
+        </Size>
+        <Scripts>
+            <OnMouseDown>
+                if SimplePallyPower_StartScaling then
+                    SimplePallyPower_StartScaling(arg1)
+                end
+            </OnMouseDown>
+            <OnMouseUp>
+                if SimplePallyPower_StopScaling then
+                    SimplePallyPower_StopScaling(arg1)
+                end
+            </OnMouseUp>
+        </Scripts>
+        <NormalTexture file="Interface\AddOns\SimpleUI\Media\Textures\ResizeGrip" />
+        <HighlightTexture file="Interface\AddOns\SimpleUI\Media\Textures\ResizeGrip" alphaMode="ADD" />
+    </Button>
+
+    <Button name="SimpleBuffGridButtonTemplate" hidden="false" virtual="true">
+        <Size>
+            <AbsDimension x="54" y="54" />
+        </Size>
+        <Layers>
+            <Layer level="OVERLAY">
+                <Texture file="Interface\Icons\Spell_Holy_SealOfWisdom" name="$parentIcon">
+                    <Size>
+                        <AbsDimension x="32" y="32" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="11" y="-11" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnLoad>
+                if SimplePallyPowerGridButton_OnLoad then
+                    SimplePallyPowerGridButton_OnLoad(this);
+                end
+                this:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+                this:EnableMouseWheel(1)
+            </OnLoad>
+            <OnClick>
+                if SimplePallyPowerGridButton_OnClick then
+                    SimplePallyPowerGridButton_OnClick(this, arg1)
+                end
+            </OnClick>
+            <OnEnter>
+                if SimplePallyPowerGridButton_OnEnter then
+                    SimplePallyPowerGridButton_OnEnter(this)
+                end
+            </OnEnter>
+            <OnLeave>
+                if SimplePallyPowerGridButton_OnLeave then
+                    SimplePallyPowerGridButton_OnLeave(this)
+                end
+            </OnLeave>
+            <OnMouseWheel>
+                if SimplePallyPowerGridButton_OnMouseWheel then
+                    SimplePallyPowerGridButton_OnMouseWheel(this, arg1)
+                end
+            </OnMouseWheel>
+        </Scripts>
+    </Button>
+
+    <Button name="SimplePallyPowerBuffButtonTemplate" hidden="false" virtual="true">
+        <Size>
+            <AbsDimension x="100" y="34" />
+        </Size>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture file="Interface\AddOns\SimpleUI\Media\Textures\SimpleUI-Default" name="$parentBackground">
+                    <Size>
+                        <AbsDimension x="98" y="32" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="CENTER">
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTime" inherits="GameFontHighlightSmall" text="15:00"
+                    justifyH="RIGHT">
+                    <Size>
+                        <AbsDimension x="40" y="16" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPRIGHT">
+                            <Offset>
+                                <AbsDimension x="-5" y="-3" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentText" inherits="GameFontHighlightSmall" text="99"
+                    justifyH="RIGHT">
+                    <Size>
+                        <AbsDimension x="40" y="16" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT">
+                            <Offset>
+                                <AbsDimension x="-5" y="3" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <Texture file="Interface\AddOns\PallyPower\Icons\Warrior" name="$parentClassIcon">
+                    <Size>
+                        <AbsDimension x="26" y="26" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="4" y="-4" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture file="Interface\Icons\Spell_Holy_SealOfWisdom" name="$parentBuffIcon">
+                    <Size>
+                        <AbsDimension x="26" y="26" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentClassIcon"
+                            relativePoint="TOPRIGHT">
+                            <Offset>
+                                <AbsDimension x="4" y="0" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Frame name="$parentBorder" hidden="false" virtual="false" strata="HIGH">
+                <Anchors>
+                    <Anchor point="CENTER">
+
+                    </Anchor>
+                </Anchors>
+                <Size>
+                    <AbsDimension x="110" y="42" />
+                </Size>
+                <Backdrop dgeFile="Interface\AddOns\SimpleUI\Media\Textures\thick-border" tile="false">
+                    <EdgeSize>
+                        <AbsValue val="14" />
+                    </EdgeSize>
+                </Backdrop>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                if SimplePallyPowerBuffButton_OnLoad then
+                    SimplePallyPowerBuffButton_OnLoad(this); 
+                end
+                this:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+            </OnLoad>
+            <OnClick>
+                if SimplePallyPowerBuffButton_OnClick then
+                    SimplePallyPowerBuffButton_OnClick(this, arg1)
+                end
+            </OnClick>
+            <OnEnter>
+                if SimplePallyPowerBuffButton_OnEnter then
+                    SimplePallyPowerBuffButton_OnEnter(this)
+                end
+            </OnEnter>
+            <OnLeave>
+                if SimplePallyPowerBuffButton_OnLeave then
+                    SimplePallyPowerBuffButton_OnLeave(this)
+                end
+            </OnLeave>
+        </Scripts>
+    </Button>
+
+    <Frame name="SimpleUserTemplate" hidden="false" virtual="true">
+        <Size>
+            <AbsDimension x="846" y="56"/>
+        </Size>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentName" inherits="GameFontHighlightSmall" text="SomePally$parent"
+                            justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="846" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOP">
+                            <Offset>
+                                <AbsDimension x="3" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSymbols" inherits="GameFontHighlightSmall" text="999" justifyH="RIGHT">
+                    <Size>
+                        <AbsDimension x="50" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" relativePoint="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="124" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <Texture file="Interface\Icons\Spell_Holy_SealOfWisdom" name="$parentIcon0">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="10" y="-16"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+               
+               
+                  <Texture file="Interface\Icons\Spell_holy_greaterblessingofkings" name="$parentIcon1">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="50" y="-16"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                  </Texture>
+               
+               
+               
+               
+                <Texture file="Interface\Icons\Spell_Holy_SealOfSalvation" name="$parentIcon2">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="90" y="-16"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture file="Interface\Icons\Spell_Holy_PrayerOfHealing02" name="$parentIcon3">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="10" y="-36"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture file="Interface\Icons\Spell_Magic_MageArmor" name="$parentIcon4">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="50" y="-36"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture file="Interface\Icons\Spell_Nature_LightningShield" name="$parentIcon5">
+                    <Size>
+                        <AbsDimension x="16" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="90" y="-36"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine1" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="690" y="1"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="0" y="2"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine2" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
+                            <Offset>
+                                <AbsDimension x="128" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine3" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine2">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine4" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine3">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine5" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine4">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine6" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine5">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine7" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine6">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine8" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine7">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine9" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine8">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine10" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine9">
+                            <Offset>
+                                <AbsDimension x="56" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentLine11" file="Interface\BUTTONS\WHITE8X8" hidden="false">
+                    <Size>
+                        <AbsDimension x="1" y="56" />
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentLine10">
+                            <Offset>
+                                <AbsDimension x="56" y="0" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+                <FontString name="$parentSkill0" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon0" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSkill1" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon1" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSkill2" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon2" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSkill3" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon3" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSkill4" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon4" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSkill5" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+                    <Size>
+                        <AbsDimension x="30" y="16"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentIcon5" relativePoint="TOPRIGHT">
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentClass1" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT">
+                        <Offset>
+                            <AbsDimension x="130" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass2" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass1" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass3" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass2" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass4" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass3" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass5" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass4" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass6" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass5" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass7" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass6" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass8" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass7" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass9" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass8" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+            <Button name="$parentClass10" inherits="SimpleBuffGridButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentClass9" relativePoint="TOPRIGHT">
+                        <Offset>
+                            <AbsDimension x="2" y="0" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Frame>
+
+</Ui>

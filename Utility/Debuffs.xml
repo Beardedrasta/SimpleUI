@@ -1,0 +1,25 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+
+    <Frame name="SimpleUIdebuffsScanner" parent="UIParent">
+        <Scripts>
+			<OnLoad>
+				this:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_DAMAGE")
+                this:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE")
+                this:RegisterEvent("CHAT_MSG_SPELL_FAILED_LOCALPLAYER")
+                this:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
+                this:RegisterEvent("PLAYER_TARGET_CHANGED")
+                this:RegisterEvent("SPELLCAST_STOP")
+                this:RegisterEvent("UNIT_AURA")
+                this:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
+			</OnLoad>
+			<OnEvent>
+				this:OnEvent(event)
+			</OnEvent>
+		</Scripts>
+    </Frame>
+
+	<Script file="_debuff.lua"/>
+
+</Ui>
