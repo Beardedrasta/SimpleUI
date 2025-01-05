@@ -629,7 +629,7 @@ SimpleUI:AddModule("Actionbar", function()
         end
     end
 
-    --[[ local OLD_ShowBonusActionBar = ShowBonusActionBar
+    local OLD_ShowBonusActionBar = ShowBonusActionBar
     ShowBonusActionBar = function()
         if BonusActionBarFrame.mode ~= "show" and BonusActionBarFrame.state ~= "top" then
             if Actionbar.actionBar.default:IsShown() then
@@ -637,7 +637,7 @@ SimpleUI:AddModule("Actionbar", function()
             end
         end
         OLD_ShowBonusActionBar()
-    end ]]
+    end
 
     local OLD_HideBonusActionBar = HideBonusActionBar
     HideBonusActionBar = function()
@@ -672,7 +672,7 @@ SimpleUI:AddModule("Actionbar", function()
 
     ActionbarWatcher:SetScript("OnEvent", function()
         if event == 'UPDATE_BONUS_ACTIONBAR' then
-            SimpleUI_BarUpdate(1)
+            --(1)
         elseif event == 'UPDATE_SHAPESHIFT_FORMS' then
             ShapeshiftBar_Update()
         elseif (event == 'PET_BAR_UPDATE' or (event == 'UNIT_PET' and arg1 == 'player')) then
@@ -681,7 +681,7 @@ SimpleUI:AddModule("Actionbar", function()
             elseif GetNumShapeshiftForms() < 1 then
                 Actionbar.stanceBar:Hide()
             end
-        elseif event == "ADDON_LOADED" then
+        elseif event == "VARIABLES_LOADED" then
             this:UnregisterEvent('ADDON_LOADED')
             this:RegisterEvent('UPDATE_BONUS_ACTIONBAR')
             this:RegisterEvent('UPDATE_SHAPESHIFT_FORMS')
@@ -689,13 +689,14 @@ SimpleUI:AddModule("Actionbar", function()
             this:RegisterEvent('UNIT_PET')
             SimpleUI_Replace(Actionbar)
             SimpleUI_Update_Actionbar()
-        elseif event == "PLAYER_ENTERING_WORLD" then
+        elseif event == "ADDON_LOADED" then
             SimpleUI_Update_Actionbar()
+            SimpleUI_SystemMessage("Actionbars loaded")
         end
     end)
 
 
-    UIParent_ManageFramePositions = function()
+--[[     UIParent_ManageFramePositions = function()
         local yOffsetFrames = {};
         local xOffsetFrames = {};
 
@@ -816,5 +817,5 @@ SimpleUI:AddModule("Actionbar", function()
         QuestWatchFrame:SetPoint("TOPRIGHT", "MinimapCluster", "BOTTOMRIGHT", -CONTAINER_OFFSET_X, anchorY);
         FCF_DockUpdate();
         updateContainerFrameAnchors();
-    end
+    end ]]
 end)
