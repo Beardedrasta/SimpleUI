@@ -962,6 +962,34 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
+    function Unitframe.OnMouseUp()
+        local frame = this
+        local function moveFrames(frame, parent)
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, 0)
+            frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -5, 0)
+        end
+        moveFrames(frame.healthCenterText, frame.health.bar)
+        moveFrames(frame.healthLeftText, frame.health.bar)
+        moveFrames(frame.healthRightText, frame.health.bar)
+        moveFrames(frame.powerLeftText, frame.power.bar)
+        moveFrames(frame.powerRightText, frame.power.bar)
+    end
+
+    function Unitframe.OnMouseDown()
+        local frame = this
+        local function moveFrames(frame, parent)
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 7, -2)
+            frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -3, -2)
+        end
+        moveFrames(frame.healthCenterText, frame.health.bar)
+        moveFrames(frame.healthLeftText, frame.health.bar)
+        moveFrames(frame.healthRightText, frame.health.bar)
+        moveFrames(frame.powerLeftText, frame.power.bar)
+        moveFrames(frame.powerRightText, frame.power.bar)
+    end
+
     function Unitframe.OnDragStart()
         if IsAltKeyDown() then
             this:StartMoving()
@@ -1128,6 +1156,8 @@ SimpleUI:AddModule("Unitframes", function()
         frame:SetScript("OnLeave", Unitframe.OnLeave)
         frame:SetScript("OnDragStart", Unitframe.OnDragStart)
         frame:SetScript("OnDragStop", Unitframe.OnDragStop)
+        frame:SetScript("OnMouseUp", Unitframe.OnMouseUp)
+        frame:SetScript("OnMouseDown", Unitframe.OnMouseDown)
 
         frame.happinessIcon:SetScript("OnEnter", Unitframe.HappinessOnEnter)
         frame.happinessIcon:SetScript("OnLeave", Unitframe.HappinessOnLeave)
