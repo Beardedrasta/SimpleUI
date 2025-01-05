@@ -8,20 +8,27 @@ SimpleUI:AddModule("Unitframes", function()
     if SimpleUI:IsDisabled("Unitframes") then return end
 
     local Unitframe = CreateFrame("Frame", nil, UIParent)
+
     local _G = getfenv(0)
     local u = SUI_Util
     local E = SimpleUI.Element
-    local startid = 1
-    
+
+    local PLAYER_BUFF_START_ID = -1
+
     -- Module Data
     local frames, delayed = {}, {}
     local scanner
+    local startid = 1
 
-    local PLAYER_BUFF_START_ID = -1
-    -----------------------------------------------
-    -- Delayed Frame Visibility Update
-    -----------------------------------------------
+    SimpleUI_cache = SimpleUI_cache or {}
+    SimpleUI_cache.buff_icons = SimpleUI_cache.buff_icons or {}
 
+    -------------------------------------------------------------------------------
+    -- DELAYED VISIBILITY UPDATES
+    -------------------------------------------------------------------------------
+    -- Delays frame visibility changes until out of combat (combat lockdown).
+    -- Each OnUpdate checks if we are out of combat, then processes delayed frames.
+    -------------------------------------------------------------------------------
     Unitframe:SetScript("OnUpdate", function()
         if InCombatLockdown and not InCombatLockdown() then
             for frame in pairs(delayed) do
@@ -31,34 +38,22 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end)
 
-    -----------------------------------------------
-    -- Visibility Scan Frame
-    -----------------------------------------------
 
-    local visibilityscan = CreateFrame("Frame", "SimpleUIUnitFrameVisibility", UIParent)
-    visibilityscan.frames = {}
-    visibilityscan:SetScript("OnUpdate", function()
-        if (this.limit or 1) > GetTime() then
-            return
-        else
-            this.limit = GetTime() + 0.2
-        end
-        for frame in pairs(this.frames) do
-            frame:UpdateVisibility()
-        end
-    end)
-
+    -------------------------------------------------------------------------------
+    -- TIMER FRAME
+    -------------------------------------------------------------------------------
+    -- Generic frame to start a delayed callback after some time.
+    -------------------------------------------------------------------------------
     local TimerFrame = CreateFrame("Frame")
     TimerFrame.elapsed = 0
-
     function TimerFrame:Start(frame, delay, callback)
         if self.running == nil then
             self.running = true
         end
-
-        self.delay = delay
+        self.delay    = delay
         self.callback = callback
-        self.elapsed = 0
+        self.elapsed  = 0
+
         if self.running then
             self:SetScript("OnUpdate", function()
                 self.elapsed = self.elapsed + arg1
@@ -77,47 +72,33 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-
-    -----------------------------------------------
-    -- Buff Detection and Visibility Management
-    -----------------------------------------------
-
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:DetectBuff
+    -- Purpose : Returns a unit buff texture (and name if needed) with caching.
+    -------------------------------------------------------------------------------
     local detect_icon, detect_name
-    -----------------------------------------------
-    -- Function: DetectBuff
-    -- Purpose: Detects and retrieves a buff's texture or name with caching to optimize performance.
-    -- Parameters:
-    --   name (string): Unit name to check.
-    --   id (number): Buff ID for the specified unit.
-    -- Returns:
-    --   string, number: Texture path and a flag indicating if detected.
-    -----------------------------------------------
-    function Unitframe:DetectBuff(name, id)
-        if not name or not id then return end
-
-        -- Initialize or reset variables
-        detect_icon, detect_name = nil, nil
+    function Unitframe:DetectBuff(unitName, buffIndex)
+        if not unitName or not buffIndex then return end
+        detect_icon, detect_name = UnitBuff(unitName, buffIndex), nil
         scanner = scanner or u.TipScan:GetScanner("unitframes")
-        SimpleUI_cache.buff_icons = SimpleUI_cache.buff_icons or {}
 
-        detect_icon = UnitBuff(name, id)
         if detect_icon then
+            -- If this buff's texture has not been cached, get buff name from tooltip
             if not SimpleUI_AuraList.icons[detect_name] and not SimpleUI_cache.buff_icons[detect_icon] then
-                -- Retrieve buff name and cache it
-                scanner:SetUnitBuff(name, id)
+                scanner:SetUnitBuff(unitName, buffIndex)
                 detect_name = scanner:Line(1)
                 if detect_name then
                     SimpleUI_cache.buff_icons[detect_icon] = detect_name
                 end
             end
-            return UnitBuff(name, id)
+            return UnitBuff(unitName, buffIndex)
         end
 
-        -- Tooltip Scanner fallback for name-based icons
-        scanner:SetUnitBuff(name, id)
+        -- No texture found. Attempt fallback scanning for name-based icons
+        scanner:SetUnitBuff(unitName, buffIndex)
         detect_name = scanner:Line(1)
         if detect_name then
-            if SimpleUI_AuraList["icons"][detect_name] then
+            if SimpleUI_AuraList.icons[detect_name] then
                 return "Interface\\Icons\\" .. SimpleUI_AuraList.icons[detect_name], 1
             end
             for icon, cached_name in pairs(SimpleUI_cache.buff_icons) do
@@ -130,11 +111,10 @@ SimpleUI:AddModule("Unitframes", function()
         return nil
     end
 
-    -----------------------------------------------
-    -- Function: UpdateVisibility
-    -- Purpose: Updates the visibility of a unit frame based on combat lockdown, raid status, and other rules.
-    -- Returns: None
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:UpdateVisibility
+    -- Purpose : Updates frame visibility based on combat, raid status, config rules.
+    -------------------------------------------------------------------------------
     function Unitframe:UpdateVisibility()
         local frame = self or this
         if not frame then return end
@@ -154,7 +134,7 @@ SimpleUI:AddModule("Unitframes", function()
 
         -- Cache raid frame ID
         if not frame.cache_raid then
-            if strsub(self:GetName(), 0, 6) == "SimpleUIraid" then
+            if strsub(self:GetName(), 0, 6) == "SUIraid" then
                 frame.cache_raid = tonumber(strsub(self:GetName(), 7, 8))
             else
                 frame.cache_raid = 0
@@ -216,116 +196,76 @@ SimpleUI:AddModule("Unitframes", function()
                 self:Hide()
             end
         end
-
-
-        --[[ -- Visibility rules based on configuration
-        if frame.config and frame.config.visibile == false then
-            frame:Hide()
-            frame.visible = nil
-            return
-        end
-
-        -- Determine visibility
-        local shouldShow = false
-        if UnitExists(unitstr) and UnitName(unitstr) then
-            if frame.label == "partypet" then
-                shouldShow = UnitExists("party" .. frame.id) and UnitIsVisible(unitstr)
-            elseif frame.label == "pettarget" then
-                shouldShow = UnitExists("pet") and UnitIsVisible(unitstr)
-            else
-                shouldShow = frame.config.visible ~= false
-            end
-        end
-
-        -- Update frame visibility
-        if shouldShow then
-            frame:Show()
-        else
-            frame:Hide()
-        end ]]
     end
 
-    -----------------------------------------------
-    -- Function: UpdateFrameSize
-    -- Purpose: Updates the frame dimensions based on configuration settings.
-    -- Returns: None
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:UpdateFrameSize
+    -- Purpose : Updates the frame's width/height & portrait offset from config.
+    -------------------------------------------------------------------------------
     function Unitframe:UpdateFrameSize()
-        -- Default Values
-        local BORDER_SIZE, spacing = 2, self.config.pspace * u.GetPerfectPixel()
-        local width, height = self.config.width, self.config.height
-        local pheight, ptwidth, ptheight = self.config.manaheight, self.config.portraitwidth, self.config.portraitheight
+        local BORDER_SIZE = 2
+        local spacing     = self.config.pspace * u.GetPerfectPixel()
+        local width       = self.config.width
+        local height      = self.config.height
+        local pheight     = self.config.manaheight
+        local ptwidth     = self.config.portraitwidth
+        local ptheight    = self.config.portraitheight
 
-        -- Calculate real frame height
+
         local realHeight = height + spacing + pheight + 2 * BORDER_SIZE
         if spacing < 0 and abs(spacing) > tonumber(pheight) then
             realHeight, spacing = height, 0
         end
 
-        -- Update portrait dimensions
         local portraitOffset = 0
         if self.config.portrait == "left" or self.config.portrait == "right" then
             if ptwidth == -1 and ptheight == -1 then
-                -- Align portrait size to frame height
                 self.portrait:SetWidth(realHeight)
                 self.portrait:SetHeight(realHeight)
                 portraitOffset = realHeight + spacing + 2 * BORDER_SIZE
             else
-                -- Use custom portrait dimensions
                 self.portrait:SetWidth(ptwidth)
                 self.portrait:SetHeight(ptwidth)
             end
         end
 
-        -- Set final dimensions
         self:SetWidth(width + portraitOffset)
         self:SetHeight(realHeight)
     end
 
-    -----------------------------------------------
-    -- Function: SetIcons
-    -- Purpose: Positions master and leader icons on the given frame.
-    -- Parameters:
-    --   frame (table): The frame to modify.
-    --   p1 (string): First anchor point.
-    --   p2 (string): Second anchor point.
-    --   xOffset1, yOffset1 (number): Master icon offsets.
-    --   xOffset2, yOffset2 (number): Leader icon offsets.
-    -- Returns: None
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- LOCAL FUNCTION: SetIcons
+    -- Purpose       : Positions the master and leader icons on a frame.
+    -------------------------------------------------------------------------------
     local function SetIcons(frame, p1, p2, xOffset1, yOffset1, xOffset2, yOffset2)
-        -- Position master icon
         frame.masterIcon:ClearAllPoints()
         frame.masterIcon:SetPoint(p1, frame, p2, xOffset1, yOffset1)
 
-        -- Position leader icon
         frame.leaderIcon:ClearAllPoints()
         frame.leaderIcon:SetPoint(p1, frame, p2, xOffset2, yOffset2)
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:UpdateConfig
+    -- Purpose : Applies config changes to a frame (size, bars, icons, etc.).
+    -------------------------------------------------------------------------------
+
     function Unitframe:UpdateConfig(f)
-        local frame = f or self
-        local cfg = frame.config
+        local frame                = f or self
+        local cfg                  = frame.config
         local BORDER_SIZE, spacing = 2, cfg.pspace * u.GetPerfectPixel()
 
-        local relative_point = "BOTTOM"
-        if frame.config.panchor == "TOPLEFT" then
-            relative_point = "BOTTOMLEFT"
-        elseif frame.config.panchor == "TOPRIGHT" then
-            relative_point = "BOTTOMRIGHT"
-        end
+        frame.dispellable          = nil
+        frame.indicators           = nil
+        frame.indicator_custom     = nil
 
-        frame.dispellable = nil
-        frame.indicators = nil
-        frame.indicator_custom = nil
 
         -- Frame Visibility and Strata
         frame:SetFrameStrata("MEDIUM")
-        frame.alpha_visible = cfg.alpha_visible
+        frame.alpha_visible    = cfg.alpha_visible
         frame.alpha_outofrange = cfg.alpha_outofrange
-        frame.alpha_offline = cfg.alpha_offline
+        frame.alpha_offline    = cfg.alpha_offline
 
-        -- Background Setup
         if not frame.background then
             frame.background = CreateFrame("Frame", nil, frame)
             u.CreateBackdrop(frame.background, 4.8, nil, nil, true)
@@ -333,6 +273,7 @@ SimpleUI:AddModule("Unitframes", function()
             frame.background.backdrop.border:SetFrameLevel(frame.health.bar:GetFrameLevel() + 1)
             frame.background.backdrop.border:SetFrameStrata("MEDIUM")
         end
+
         Unitframe:ConfigureHealthBar(frame, cfg, BORDER_SIZE)         -- Health Bar Configuration
         Unitframe:ConfigurePowerBar(frame, cfg, BORDER_SIZE, spacing) -- Power Bar Configuration
         Unitframe:ConfigurePortrait(frame, cfg, BORDER_SIZE, spacing) -- Portrait Configuration
@@ -346,7 +287,6 @@ SimpleUI:AddModule("Unitframes", function()
         if (buffs == "TOPLEFT" and debuffs == "TOPRIGHT") or (buffs == "TOPRIGHT" and debuffs == "TOPLEFT") then
             frame.masterIcon:ClearAllPoints()
             frame.masterIcon:SetPoint("BOTTOMLEFT", frame.portrait, "TOPLEFT", 16, 4.5)
-
             frame.leaderIcon:ClearAllPoints()
             frame.leaderIcon:SetPoint("BOTTOMLEFT", frame.portrait, "TOPLEFT", 0, 2)
         elseif buffs == "TOPLEFT" or debuffs == "TOPLEFT" then
@@ -368,22 +308,23 @@ SimpleUI:AddModule("Unitframes", function()
         frame.happinessIcon.texture:SetTexCoord(0, 0.1875, 0, 0.359375)
         frame.happinessIcon:Hide()
 
+        -----------------------------------------------------------------------
+        -- Buff Creation / Setup
+        -----------------------------------------------------------------------
+
         if frame.config.buffs == "off" then
-            for i = 1, 32 do
-                if frame.buffs and frame.buffs[i] then
-                    frame.buffs[i]:Hide()
-                    frame.buffs[i] = nil
+            if frame.buffs then
+                for i = 1, 32 do
+                    if frame.buffs[i] then
+                        frame.buffs[i]:Hide()
+                        frame.buffs[i] = nil
+                    end
                 end
+                frame.buffs = nil
             end
-            frame.buffs = nil
         else
             frame.buffs = frame.buffs or {}
-
-            for i = 1, 32 do
-                if i > frame.config.maxBuffs then
-                    break
-                end
-
+            for i = 1, frame.config.maxBuffs do
                 local pR = frame.config.buffsPerRow
                 local r = floor((i - 1) / pR)
                 local bN = "SimpleUI" .. frame.framename .. "Buff" .. i
@@ -402,12 +343,12 @@ SimpleUI:AddModule("Unitframes", function()
                 frame.buffs[i].stacks:SetShadowOffset(0.8, -0.8)
                 frame.buffs[i].stacks:SetTextColor(1, 1, .5)
 
-                frame.buffs[i].cd = frame.buffs[i].cd or
+                frame.buffs[i].cd                                 = frame.buffs[i].cd or
                     CreateFrame("Model", frame.buffs[i]:GetName() .. "Cooldown", frame.buffs[i], "CooldownFrameTemplate")
-                frame.buffs[i].cd.SimpleUI_CooldownType = "ALL"
-                frame.buffs[i].cd.SimpleUI_CooldownStyleText = 1
+                frame.buffs[i].cd.SimpleUI_CooldownType           = "ALL"
+                frame.buffs[i].cd.SimpleUI_CooldownStyleText      = 1
                 frame.buffs[i].cd.SimpleUI_CooldownStyleAnimation = 0
-                frame.buffs[i].id = i
+                frame.buffs[i].id                                 = i
                 frame.buffs[i]:Hide()
                 u.CreateBackdrop(frame.buffs[i], 6.8, nil, nil, false)
 
@@ -417,29 +358,23 @@ SimpleUI:AddModule("Unitframes", function()
 
 
                 local invert_h, invert_v, af
-                if frame.config.buffs == "TOPLEFT" then
-                    invert_h = 1
-                    invert_v = 1
-                    af = "BOTTOMLEFT"
-                elseif frame.config.buffs == "BOTTOMLEFT" then
-                    invert_h = -1
-                    invert_v = 1
-                    af = "TOPLEFT"
-                elseif frame.config.buffs == "TOPRIGHT" then
-                    invert_h = 1
-                    invert_v = -1
-                    af = "BOTTOMRIGHT"
-                elseif frame.config.buffs == "BOTTOMRIGHT" then
-                    invert_h = -1
-                    invert_v = -1
-                    af = "TOPRIGHT"
+                if cfg.buffs == "TOPLEFT" then
+                    invert_h, invert_v, af = 1, 1, "BOTTOMLEFT"
+                elseif cfg.buffs == "BOTTOMLEFT" then
+                    invert_h, invert_v, af = -1, 1, "TOPLEFT"
+                elseif cfg.buffs == "TOPRIGHT" then
+                    invert_h, invert_v, af = 1, -1, "BOTTOMRIGHT"
+                elseif cfg.buffs == "BOTTOMRIGHT" then
+                    invert_h, invert_v, af = -1, -1, "TOPRIGHT"
                 end
 
-                frame.buffs[i]:SetPoint(af, frame, frame.config.buffs,
-                    invert_v * (i - 1 - r * pR) * (2 * 2 + frame.config.buffsize + 1),
-                    invert_h * (r * (2 * 2 + frame.config.buffsize + 1) + (2 * 2 + 5)))
+                frame.buffs[i]:SetPoint(
+                    af, frame, cfg.buffs,
+                    invert_v * (i - 1 - r * pR) * (2 * BORDER_SIZE + cfg.buffsize + 1),
+                    invert_h * (r * (2 * BORDER_SIZE + cfg.buffsize + 1) + (2 * BORDER_SIZE + 5))
+                )
 
-                u.SetSize(frame.buffs[i], frame.config.buffsize, frame.config.buffsize)
+                u.SetSize(frame.buffs[i], cfg.buffsize, cfg.buffsize)
 
                 if frame:GetName() == "SimpleUIplayer" then
                     frame.buffs[i]:SetScript("OnUpdate", E.Buff_OnUpdate)
@@ -451,22 +386,24 @@ SimpleUI:AddModule("Unitframes", function()
             end
         end
 
+        -----------------------------------------------------------------------
+        -- Debuff Creation / Setup
+        -----------------------------------------------------------------------
+
         if frame.config.debuffs == "off" then
-            for i = 1, 32 do
-                if frame.debuffs and frame.debuffs[i] then
-                    frame.debuffs[i]:Hide()
-                    frame.debuffs[i] = nil
+            if frame.debuffs then
+                for i = 1, 32 do
+                    if frame.debuffs[i] then
+                        frame.debuffs[i]:Hide()
+                        frame.debuffs[i] = nil
+                    end
                 end
+                frame.debuffs = nil
             end
-            frame.debuffs = nil
         else
             frame.debuffs = frame.debuffs or {}
-
-            for i = 1, 32 do
-                if i > frame.config.maxDebuffs then break end
-
+            for i = 1, cfg.maxDebuffs do
                 local dN = "SimpleUI" .. frame.framename .. "Debuff" .. i
-
                 frame.debuffs[i] = frame.debuffs[i] or CreateFrame("Button", dN, frame)
                 frame.debuffs[i].texture = frame.debuffs[i].texture or frame.debuffs[i]:CreateTexture()
                 frame.debuffs[i].texture:SetTexCoord(.08, .92, .08, .92)
@@ -481,22 +418,19 @@ SimpleUI:AddModule("Unitframes", function()
                 frame.debuffs[i].stacks:SetShadowOffset(0.8, -0.8)
                 frame.debuffs[i].stacks:SetTextColor(1, 1, .5)
 
-                frame.debuffs[i].cd = frame.debuffs[i].cd or
+                frame.debuffs[i].cd                                 = frame.debuffs[i].cd or
                     CreateFrame("Model", frame.debuffs[i]:GetName() .. "Cooldown", frame.debuffs[i],
                         "CooldownFrameTemplate")
-                frame.debuffs[i].cd.SimpleUI_CooldownType = "ALL"
-                frame.debuffs[i].cd.SimpleUI_CooldownStyleText = 1
+                frame.debuffs[i].cd.SimpleUI_CooldownType           = "ALL"
+                frame.debuffs[i].cd.SimpleUI_CooldownStyleText      = 1
                 frame.debuffs[i].cd.SimpleUI_CooldownStyleAnimation = 0
-                frame.debuffs[i].id = i
+                frame.debuffs[i].id                                 = i
                 frame.debuffs[i]:Hide()
                 u.CreateBackdrop(frame.debuffs[i], 6.8, nil, nil, true)
 
                 frame.debuffs[i]:RegisterForClicks("RightButtonUp")
                 frame.debuffs[i]:ClearAllPoints()
-
-                u.SetSize(frame.debuffs[i], frame.config.debuffsize, frame.config.debuffsize)
-
-                frame.debuffs[i]:SetNormalTexture(nil)
+                u.SetSize(frame.debuffs[i], cfg.debuffsize, cfg.debuffsize)
 
                 if frame:GetName() == "SimpleUIplayer" then
                     frame.debuffs[i]:SetScript("OnUpdate", E.Debuff_OnUpdate)
@@ -507,6 +441,7 @@ SimpleUI:AddModule("Unitframes", function()
                 frame.debuffs[i]:SetScript("OnClick", E.Debuff_OnClick)
             end
         end
+
         if cfg.visible then
             SimpleUI_RefreshUnits(frame, "all")
             frame:EnableScripts()
@@ -518,18 +453,26 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: SimpleUI_GlobalConfigUpdate
+    -- Purpose : Global config refresh hook.
+    -------------------------------------------------------------------------------
+
     function SimpleUI_GlobalConfigUpdate(f)
         Unitframe:UpdateConfig(f)
     end
 
-    -----------------------------------------------
-    -- Helper Function: UpdateFrameBackground
-    -- Purpose: Configures and updates the frame background anchor points.
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:UpdateFrameBackground
+    -- Purpose : Anchors frame's background around top/bottom bars & portrait.
+    -------------------------------------------------------------------------------
     -----------------------------------------------
     function Unitframe:UpdateFrameBackground(frame)
-        local cfg = frame.config
+        local cfg                     = frame.config
+        local topAnchor, bottomAnchor = frame.health, frame.health
+        local topX, topY              = -2, 2
+        local bottomX, bottomY        = 2, -2
 
-        local topAnchor, topX, topY = frame.health, -2, 2
         if cfg.portrait == "left" and frame.portrait:IsShown() then
             topAnchor = frame.portrait
         elseif cfg.portrait == "right" and frame.portrait:IsShown() then
@@ -538,7 +481,6 @@ SimpleUI:AddModule("Unitframes", function()
             topAnchor = frame.health
         end
 
-        local bottomAnchor, bottomX, bottomY = frame.health, 2, -2
         if cfg.portrait == "right" and frame.power:IsShown() then
             bottomAnchor = frame.portrait
         elseif cfg.portrait == "left" and frame.power:IsShown() then
@@ -554,10 +496,10 @@ SimpleUI:AddModule("Unitframes", function()
         frame.background:SetPoint("BOTTOMRIGHT", bottomAnchor, "BOTTOMRIGHT", bottomX, bottomY)
     end
 
-    -----------------------------------------------
-    -- Helper Function: ConfigureHealthBar
-    -- Purpose: Sets up health bar dimensions and textures.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigureHealthBar
+    -- Purpose : Configures the health bar position, size, texture.
+    -------------------------------------------------------------------------------
     function Unitframe:ConfigureHealthBar(frame, cfg, BORDER_SIZE)
         frame.health:ClearAllPoints()
         frame.health:SetPoint("TOP", 0, 0)
@@ -573,17 +515,16 @@ SimpleUI:AddModule("Unitframes", function()
 
     function SimpleUI_FixStatusbarTexture(frame, cfg)
         Unitframe:UpdateConfig(frame)
-        --Unitframe:ConfigureHealthBar(frame, cfg)
-        --Unitframe:ConfigurePowerBar(frame, cfg, 2)
     end
 
-    -----------------------------------------------
-    -- Helper Function: ConfigurePowerBar
-    -- Purpose: Configures the power bar placement and textures.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigurePowerBar
+    -- Purpose : Configures the power bar position, size, texture.
+    -------------------------------------------------------------------------------
     function Unitframe:ConfigurePowerBar(frame, cfg, BORDER_SIZE, spacing)
-        local relativePoint = cfg.panchor == "TOPLEFT" and "BOTTOMLEFT" or
-            cfg.panchor == "TOPRIGHT" and "BOTTOMRIGHT" or "BOTTOM"
+        local relativePoint = (cfg.panchor == "TOPLEFT" and "BOTTOMLEFT")
+            or (cfg.panchor == "TOPRIGHT" and "BOTTOMRIGHT")
+            or "BOTTOM"
 
         frame.power:ClearAllPoints()
         frame.power:SetPoint(cfg.panchor, frame.health, relativePoint, cfg.poffx,
@@ -597,10 +538,10 @@ SimpleUI:AddModule("Unitframes", function()
         frame.power.bar:SetAllPoints(frame.power)
     end
 
-    -----------------------------------------------
-    -- Helper Function: ConfigurePortrait
-    -- Purpose: Sets up the portrait appearance and positioning.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigurePortrait
+    -- Purpose : Sets up the portrait arrangement & textures (2D/3D).
+    -------------------------------------------------------------------------------
     function Unitframe:ConfigurePortrait(frame, cfg, BORDER_SIZE, spacing)
         frame.portrait:ClearAllPoints()
         frame.portrait.tex:SetAllPoints(frame.portrait)
@@ -611,7 +552,8 @@ SimpleUI:AddModule("Unitframes", function()
         frame.portrait.sep:SetWidth(10)
         frame.portrait.sep:SetHeight(frame:GetHeight())
 
-        if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
+        local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
+        if useDarkUI then
             frame.portrait.sep.tex:SetVertexColor(0.3, 0.3, 0.3, 0.9)
         else
             frame.portrait.sep.tex:SetVertexColor(1, 1, 1, 1)
@@ -637,10 +579,8 @@ SimpleUI:AddModule("Unitframes", function()
 
             frame.health:ClearAllPoints()
             frame.health:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-
             frame.portrait:SetAlpha(1)
             frame.portrait:SetFrameStrata("BACKGROUND")
-
             frame.portrait.model:SetFrameStrata("BACKGROUND")
             frame.portrait.model:SetFrameLevel(1)
             frame.portrait:Show()
@@ -656,10 +596,8 @@ SimpleUI:AddModule("Unitframes", function()
             end
             frame.health:ClearAllPoints()
             frame.health:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-
             frame.portrait:SetAlpha(1)
             frame.portrait:SetFrameStrata("BACKGROUND")
-
             frame.portrait.model:SetFrameStrata("BACKGROUND")
             frame.portrait.model:SetFrameLevel(1)
             frame.portrait:Show()
@@ -671,100 +609,46 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-    function SimpleUI_FixPortrait(cfg)
-        local frame = getglobal("SimpleUIplayer")
-        local BORDER_SIZE, spacing = 2, cfg.pspace * u.GetPerfectPixel()
-        if cfg.portrait == "bar" then
-            frame.portrait:SetParent(frame.health.bar)
-            frame.portrait:SetAllPoints(frame.health.bar)
-            frame.portrait:SetAlpha(cfg.alpha)
-            if frame.portrait.backdrop then
-                frame.portrait.backdrop:Hide()
-            end
-            frame.portrait.model:SetFrameLevel(3)
-            frame.portrait:Show()
-            frame.level:ClearAllPoints()
-            frame.level:SetPoint("BOTTOMLEFT", frame.background.backdrop.border, "BOTTOMLEFT", 0, 0)
-        elseif cfg.portrait == "left" then
-            frame.portrait:SetParent(frame)
-            if cfg.portraitwidth == -1 and cfg.portraitheight == -1 then
-                frame.portrait:ClearAllPoints()
-                frame.portrait:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-            else
-                frame.portrait:ClearAllPoints()
-                frame.portrait:SetPoint("LEFT", frame, "LEFT", -cfg.portraitwidth - 6 * BORDER_SIZE - spacing, 0)
-            end
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigureTexts
+    -- Purpose : Positions & sets fonts for text regions (health, power, name).
+    -------------------------------------------------------------------------------
 
-            frame.health:ClearAllPoints()
-            frame.health:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-
-            frame.portrait:SetAlpha(1)
-            frame.portrait:SetFrameStrata("BACKGROUND")
-
-            frame.portrait.model:SetFrameStrata("BACKGROUND")
-            frame.portrait.model:SetFrameLevel(1)
-            frame.portrait:Show()
-            frame.level:ClearAllPoints()
-            frame.level:SetPoint("BOTTOMLEFT", frame.background.backdrop.border, "BOTTOMLEFT", 0, 0)
-        elseif cfg.portrait == "right" then
-            frame.portrait:SetParent(frame)
-            if cfg.portraitwidth == -1 and cfg.portraitheight == -1 then
-                frame.portrait:ClearAllPoints()
-                frame.portrait:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-            else
-                frame.portrait:ClearAllPoints()
-                frame.portrait:SetPoint("RIGHT", frame, "RIGHT", cfg.portraitwidth + 6 * BORDER_SIZE + spacing, 0)
-            end
-            frame.health:ClearAllPoints()
-            frame.health:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-
-            frame.portrait:SetAlpha(1)
-            frame.portrait:SetFrameStrata("BACKGROUND")
-
-            frame.portrait.model:SetFrameStrata("BACKGROUND")
-            frame.portrait.model:SetFrameLevel(1)
-            frame.portrait:Show()
-            frame.level:ClearAllPoints()
-            frame.level:SetPoint("BOTTOMRIGHT", frame.background.backdrop.border, "BOTTOMRIGHT", 0, 0)
-        else
-            frame.portrait:Hide()
-            frame.level:ClearAllPoints()
-            frame.level:SetPoint("BOTTOMLEFT", frame.background.backdrop.border, "BOTTOMLEFT", 0, 0)
-        end
-
-        Unitframe:UpdateFrameBackground(frame)
-    end
-
-    -----------------------------------------------
-    -- Helper Function: ConfigureTexts
-    -- Purpose: Updates all text regions (e.g., health, power, name).
-    -----------------------------------------------
     function Unitframe:ConfigureTexts(frame, cfg, BORDER_SIZE)
-        local function configureTextRegion(region, parent, point1, point2, offsetX, offsetY)
-            --region:SetFontObject(SimpleUIFont)
-            region:SetFont(SimpleUI_GetFont(frame.config.font),
-                frame.config.fontSize, "OUTLINE")
-            region:SetJustifyH("CENTER")
+        local padding = 10
+        local function configureTextRegion(region, parent, justifyH)
+            region:SetFont(SimpleUI_GetFont(frame.config.font), frame.config.fontSize, "OUTLINE")
+            region:SetJustifyH(justifyH or "CENTER")
             region:SetParent(parent)
             region:ClearAllPoints()
-            region:SetPoint(point1, parent, point1, offsetX, offsetY)
-            region:SetPoint(point2, parent, point2, -offsetX, 0)
+
+            region:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, 0)
+            region:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -5, 0)
         end
 
-        configureTextRegion(frame.healthCenterTextHp, frame.health.bar, "TOPLEFT", "BOTTOMRIGHT", 2 * BORDER_SIZE,
-            cfg.txthpcenteroffy)
-        configureTextRegion(frame.healthCenterTextName, frame.health.bar, "TOPLEFT", "BOTTOMRIGHT", 2 * BORDER_SIZE,
-            cfg.txthpcenteroffy)
-        configureTextRegion(frame.powerCenterText, frame.power.bar, "TOPLEFT", "BOTTOMRIGHT", 2 * BORDER_SIZE + cfg
-            .poffx, 0)
-        frame.healthCenterTextHp:Hide()
-        frame.powerCenterText:Hide()
+        if cfg.invertHealth then
+            configureTextRegion(frame.healthCenterText, frame.health.bar, "RIGHT")
+            configureTextRegion(frame.healthLeftText, frame.health.bar, "LEFT")
+            configureTextRegion(frame.healthRightText, frame.health.bar, "RIGHT")
+            configureTextRegion(frame.powerLeftText, frame.power.bar, "LEFT")
+            configureTextRegion(frame.powerRightText, frame.power.bar, "RIGHT")
+            frame.healthCenterText:Hide()
+            frame.powerRightText:Hide()
+        else
+            configureTextRegion(frame.healthCenterText, frame.health.bar, "LEFT")
+            configureTextRegion(frame.healthLeftText, frame.health.bar, "LEFT")
+            configureTextRegion(frame.healthRightText, frame.health.bar, "RIGHT")
+            configureTextRegion(frame.powerLeftText, frame.power.bar, "LEFT")
+            configureTextRegion(frame.powerRightText, frame.power.bar, "RIGHT")
+            frame.healthCenterText:Hide()
+            frame.powerLeftText:Hide()
+        end
     end
 
-    -----------------------------------------------
-    -- Helper Function: ConfigureIcons
-    -- Purpose: Updates leader, master looter, and raid icons.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigureIcons
+    -- Purpose : Configures leader, master, raid icons, etc.
+    -------------------------------------------------------------------------------
     function Unitframe:ConfigureIcons(frame, cfg, BORDER_SIZE)
         u.SetSize(frame.restIcon, 24, 24)
         frame.restIcon:SetPoint("CENTER", frame.level, "CENTER", 0, 0)
@@ -794,15 +678,16 @@ SimpleUI:AddModule("Unitframes", function()
         frame.raidIcon.texture:SetTexture("Interface\\AddOns\\SimpleUI\\Media\\Textures\\raidicons.blp")
         frame.raidIcon.texture:SetAllPoints(frame.raidIcon)
         frame.raidIcon:Hide()
+
         if frame.label == "raid" then
             frame.raidIcon:SetAlpha(0.7)
         end
     end
 
-    -----------------------------------------------
-    -- Helper Function: ConfigureLevel
-    -- Purpose: Update Level Background, Overlay, and Text
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:ConfigureLevel
+    -- Purpose : Configures the level display (circle, text, color).
+    -------------------------------------------------------------------------------
     function Unitframe:ConfigureLevel(frame, cfg)
         frame.level:SetFrameLevel(frame.background.backdrop.border:GetFrameLevel() + 1)
         frame.level.bg:SetAllPoints(frame.level)
@@ -839,7 +724,8 @@ SimpleUI:AddModule("Unitframes", function()
             frame.level:SetPoint("BOTTOMLEFT", frame.background.backdrop.border, "BOTTOMLEFT", 0, 0)
         end
 
-        if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
+        local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
+        if useDarkUI then
             frame.level.bg:SetVertexColor(0.15, 0.15, 0.15, 0.9)
             frame.level.overlay:SetVertexColor(0.3, 0.3, 0.3, 0.9)
         else
@@ -852,8 +738,12 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-    -- End Function
-
+    -------------------------------------------------------------------------------
+    -- HANDLERS: OnShow, OnEvent, OnUpdate
+    -------------------------------------------------------------------------------
+    -- Purpose: The usual frame scripts to refresh the unit state, handle events,
+    --          and update partial data.
+    -------------------------------------------------------------------------------
 
     function Unitframe.OnShow()
         SimpleUI_RefreshUnits(this, "all")      -- Refresh all units
@@ -873,8 +763,10 @@ SimpleUI:AddModule("Unitframes", function()
         local frame, evt = this, event
 
         -- General indicator update events
-        if evt == "PARTY_LEADER_CHANGED" or evt == "PARTY_LOOT_METHOD_CHANGED"
-            or evt == "PARTY_MEMBERS_CHANGED" or evt == "RAID_ROSTER_UPDATE"
+        if evt == "PARTY_LEADER_CHANGED"
+            or evt == "PARTY_LOOT_METHOD_CHANGED"
+            or evt == "PARTY_MEMBERS_CHANGED"
+            or evt == "RAID_ROSTER_UPDATE"
             or evt == "PLAYER_UPDATE_RESTING" then
             frame.indicatorUpdate = true
         end
@@ -886,10 +778,10 @@ SimpleUI:AddModule("Unitframes", function()
         if evt == "PLAYER_ENTERING_WORLD" then
             Unitframe:UpdateConfig(frame)
             frame.portraitUpdate = true
-        elseif evt == "PLAYER_ENTERING_WORLD" or
-            (frame.label == "target" and evt == "PLAYER_TARGET_CHANGED") or
-            ((frame.label == "party" or frame.label == "raid") and (evt == "PARTY_MEMBERS_CHANGED" or evt == "RAID_ROSTER_UPDATE")) or
-            (frame.label == "pet" and evt == "UNIT_PET") then
+        elseif evt == "PLAYER_ENTERING_WORLD"
+            or (frame.label == "target" and evt == "PLAYER_TARGET_CHANGED")
+            or ((frame.label == "party" or frame.label == "raid") and (evt == "PARTY_MEMBERS_CHANGED" or evt == "RAID_ROSTER_UPDATE"))
+            or (frame.label == "pet" and evt == "UNIT_PET") then
             frame.fullUpdate = true
         elseif frame.label == "player" and (evt == "PLAYER_AURAS_CHANGED" or evt == "UNIT_INVENTORY_CHANGED") then
             frame.fullUpdate = true
@@ -911,13 +803,11 @@ SimpleUI:AddModule("Unitframes", function()
     function Unitframe.OnUpdate()
         local frame = this
 
-        -- Update indicators
         if frame.indicatorUpdate then
             Unitframe:RefreshIndicators(frame)
             frame.indicatorUpdate = nil
         end
 
-        -- Full update handling
         if frame.fullUpdate then
             SimpleUI_RefreshUnits(frame, "all")
             frame.fullUpdate = nil
@@ -925,7 +815,6 @@ SimpleUI:AddModule("Unitframes", function()
             frame.portraitUpdate = nil
             frame.pvpUpdate = nil
         else
-            -- Partial updates
             if frame.auraUpdate then
                 SimpleUI_RefreshUnits(frame, "aura")
                 frame.auraUpdate = nil
@@ -940,13 +829,11 @@ SimpleUI:AddModule("Unitframes", function()
             end
         end
 
-        -- Focus handling for unit targeting
-        if frame.unitname and frame == SimpleUIfocus then
+        if frame.unitname and frame == _G.SimpleUIfocus then
             Unitframe:HandleFocusUpdate(frame)
         end
 
         if not frame.label then return end
-        -- Portrait model handling
         if frame.portrait and frame.portrait.model and frame.portrait.model.update then
             frame.portrait.model.lastUnit = UnitName(frame.portrait.model.update)
             frame.portrait.model:SetUnit(frame.portrait.model.update)
@@ -954,40 +841,34 @@ SimpleUI:AddModule("Unitframes", function()
             frame.portrait.model.update = nil
         end
 
-        if not frame.lastTick then frame.lastTick = GetTime() + (frame.tick or .2) end
-        if frame.lastTick and frame.lastTick < GetTime() then
+        if not frame.lastTick then
+            frame.lastTick = GetTime() + (frame.tick or 0)
+        end
+        if frame.lastTick < GetTime() then
+            frame.lastTick = GetTime() + (frame.tick or 0)
             local unitstr = frame.label .. frame.id
-
-            frame.lastTick = GetTime() + (frame.tick or .2)
-
-            -- target target has a huge delay, make sure to not tick during range checks
-            -- by waiting for a stable name over three ticks otherwise aborting the update.
             if frame.label == "targettarget" then
-                local name = UnitName(frame.label)
+                --[[                 local name = UnitName(frame.label)
                 if name ~= frame.namebuf1 then
                     frame.namebuf1 = name
                     return
                 elseif name ~= frame.namebuf2 then
                     frame.namebuf2 = name
                     return
-                end
+                end ]]
             end
-
             Unitframe:RefreshUnitState(frame)
             Unitframe:RefreshIndicators(frame)
-
-
-            -- update everything on eventless frames (targettarget, etc)
             if frame.tick then
                 SimpleUI_RefreshUnits(frame, "all")
             end
         end
     end
 
-    -----------------------------------------------
-    -- Helper Function: HandleFocusUpdate
-    -- Purpose: Handles focus logic and refreshes units when focus changes.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:HandleFocusUpdate
+    -- Purpose : Resolves "focus" frames by scanning valid units for a name match.
+    -------------------------------------------------------------------------------
     function Unitframe:HandleFocusUpdate(frame)
         local uN = (frame.label and UnitName(frame.label)) or ""
         if not frame.unitname or frame.unitname == "focus" then return end
@@ -1002,78 +883,77 @@ SimpleUI:AddModule("Unitframes", function()
                     SimpleUI_RefreshUnits(frame, "all")
                     return
                 end
-                frame.label = nil
+                frame.label          = nil
                 frame.instantRefresh = true
                 frame.health.bar:SetStatusBarColor(0.2, 0.2, 0.2)
             end
         end
     end
 
-    -----------------------------------------------
-    -- Function: UF.HappinessOnEnter
-    -- Purpose: Shows a tooltip with pet happiness details when the user hovers over the frame.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- PET HAPPINESS TOOLTIP FUNCTIONS
+    -------------------------------------------------------------------------------
     function Unitframe.HappinessOnEnter()
         if not this.tooltip then return end
-
         GameTooltip:SetOwner(this, "ANCHOR_LEFT")
         GameTooltip:SetText(this.tooltip)
-
         if this.tooltipDamage then
             GameTooltip:AddLine(this.tooltipDamage, "", 1, 1, 1)
         end
-
         if this.tooltipLoyalty then
             GameTooltip:AddLine(this.tooltipLoyalty, "", 1, 1, 1)
         end
-
         GameTooltip:Show()
     end
 
-    -----------------------------------------------
-    -- Function: UF.HappinessOnLeave
-    -- Purpose: Hides the tooltip for pet happiness.
-    -----------------------------------------------
     function Unitframe.HappinessOnLeave()
         GameTooltip:FadeOut()
     end
 
-    -----------------------------------------------
-    -- Function: UF.OnEnter
-    -- Purpose: Displays unit information in a tooltip when hovering over the unit frame.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- TOOLTIP HANDLERS: OnEnter, OnLeave
+    -------------------------------------------------------------------------------
     function Unitframe.OnEnter()
         if not this.label then return end
-
         GameTooltip_SetDefaultAnchor(GameTooltip, this)
         GameTooltip:SetUnit(this.label .. this.id)
         GameTooltip:Show()
 
-        -- Toggle visibility of text elements
-        this.healthCenterTextHp:Show()
-        this.healthCenterTextName:Hide()
+        if this.config.invertHealth then
+            this.healthCenterText:Show()
+            this.healthLeftText:Show()
+            this.healthRightText:Hide()
+        else
+            this.healthCenterText:Show()
+            this.healthLeftText:Hide()
+            this.healthRightText:Show()
+        end
 
         if this.config.ptxton then
-            this.powerCenterText:Show()
+            this.powerLeftText:Show()
+            this.powerRightText:Show()
         end
     end
 
-    -----------------------------------------------
-    -- Function: UF.OnLeave
-    -- Purpose: Hides the unit tooltip and resets text visibility on leaving the frame.
-    -----------------------------------------------
     function Unitframe.OnLeave()
         GameTooltip:FadeOut()
 
-        this.healthCenterTextHp:Hide()
-        this.healthCenterTextName:Show()
-        this.powerCenterText:Hide()
+        this.healthCenterText:Hide()
+        this.healthLeftText:Show()
+        this.healthRightText:Show()
+        if this.config.invertHealth then
+            this.powerLeftText:Show()
+            this.powerRightText:Hide()
+        else
+            this.powerLeftText:Hide()
+            this.powerRightText:Show()
+        end
     end
 
-    -----------------------------------------------
-    -- Function: UF.OnClick
-    -- Purpose: Handles unit frame clicks to target the unit or perform custom actions.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe.OnClick
+    -- Purpose : Handles clicks on the unitframe (targeting, spells, menus).
+    -------------------------------------------------------------------------------
     function Unitframe.OnClick()
         if not this.label and this.unitname then
             TargetByName(this.unitname, true)
@@ -1092,10 +972,10 @@ SimpleUI:AddModule("Unitframes", function()
         this:StopMovingOrSizing()
     end
 
-    -----------------------------------------------
-    -- Function: UF:RightClickFunction
-    -- Purpose: Displays the dropdown menu for specific unit frames when right-clicked.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:RightClickFunction
+    -- Purpose : Toggles default Blizzard dropdown menus for the appropriate unit.
+    -------------------------------------------------------------------------------
     function Unitframe:RightClickFunction(unit)
         local dropDownMap = {
             ["player"] = PlayerFrameDropDown,
@@ -1117,19 +997,16 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-    -----------------------------------------------
-    -- Function: PetFlashFrame
-    -- Purpose: Animates the pet happiness frame with a fading flash effect.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- PET FLASHING HELPERS (PetFrameFlash)
+    -------------------------------------------------------------------------------
     local function PetFlashFrame(frame)
         local elapsed, fadeIn = 0, true
         if frame.fading then return end
-
         frame:SetScript("OnUpdate", function()
             frame.fading = true
             elapsed = elapsed + arg1
             local progress = elapsed / 1.5
-
             if fadeIn then
                 frame:SetAlpha(math.min(progress, 1))
                 if progress >= 1 then
@@ -1146,31 +1023,26 @@ SimpleUI:AddModule("Unitframes", function()
         end)
     end
 
-    -----------------------------------------------
-    -- Function: PetFrameFlashStop
-    -- Purpose: Stops the pet happiness frame animation and resets its alpha.
-    -----------------------------------------------
     local function PetFrameFlashStop(frame)
         frame:SetScript("OnUpdate", nil)
         frame:SetAlpha(1)
         frame.fading = false
     end
 
-    -----------------------------------------------
-    -- Function: UF.SetPetHappiness
-    -- Purpose: Updates the pet happiness tooltip and applies a visual flash if the pet is unhappy.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe.SetPetHappiness
+    -- Purpose : Updates the tooltip for pet happiness & triggers flashing if unhappy.
+    -------------------------------------------------------------------------------
     function Unitframe.SetPetHappiness()
         local happiness, damagePercentage, loyaltyRate = GetPetHappiness()
-        happiness = happiness or 3
+        happiness                                      = happiness or 3
 
-        -- Set tooltip texts
-        this.tooltip = getglobal("PET_HAPPINESS" .. happiness)
-        this.tooltipDamage = format(PET_DAMAGE_PERCENTAGE, damagePercentage or 0)
-        this.tooltipLoyalty = loyaltyRate > 0 and getglobal("GAINING_LOYALTY")
-            or (loyaltyRate < 0 and getglobal("LOSING_LOYALTY") or nil)
+        this.tooltip                                   = getglobal("PET_HAPPINESS" .. happiness)
+        this.tooltipDamage                             = format(PET_DAMAGE_PERCENTAGE, damagePercentage or 0)
+        this.tooltipLoyalty                            = (loyaltyRate > 0 and getglobal("GAINING_LOYALTY"))
+            or (loyaltyRate < 0 and getglobal("LOSING_LOYALTY"))
+            or nil
 
-        -- Flash the frame if happiness is less than 3
         if happiness < 3 then
             PetFlashFrame(this)
         else
@@ -1178,10 +1050,25 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-    -----------------------------------------------
-    -- Function: UF:EnableEvents
-    -- Purpose: Registers events for the unit frame and related components.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- VISIBILITY SCAN FRAME
+    -------------------------------------------------------------------------------
+    -- Periodically calls :UpdateVisibility() on frames in visibilityscan.frames
+    -------------------------------------------------------------------------------
+    local visibilityscan = CreateFrame("Frame", "SimpleUIUnitFrameVisibility", UIParent)
+    visibilityscan.frames = {}
+    visibilityscan:SetScript("OnUpdate", function()
+        if (this.limit or 1) > GetTime() then return end
+        this.limit = GetTime() + 0.2
+        for frame in pairs(this.frames) do
+            frame:UpdateVisibility()
+        end
+    end)
+
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:EnableEvents
+    -- Purpose : Registers all relevant events on the unit frame.
+    -------------------------------------------------------------------------------
     function Unitframe:EnableEvents()
         local frame = self or this
         local events = {
@@ -1214,8 +1101,8 @@ SimpleUI:AddModule("Unitframes", function()
             "UNIT_HAPPINESS"
         }
 
-        for _, event in ipairs(events) do
-            frame:RegisterEvent(event)
+        for _, e in ipairs(events) do
+            frame:RegisterEvent(e)
         end
 
         frame.happinessIcon:RegisterEvent("UNIT_PET")
@@ -1226,14 +1113,13 @@ SimpleUI:AddModule("Unitframes", function()
         frame:EnableMouse(true)
     end
 
-    -----------------------------------------------
-    -- Function: UF:EnableScripts
-    -- Purpose: Assigns scripts (event handlers, click, update) to the unit frame and its components.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:EnableScripts
+    -- Purpose : Assigns all OnClick, OnEvent, OnShow, OnUpdate scripts, etc.
+    -------------------------------------------------------------------------------
     function Unitframe:EnableScripts()
         local frame = self
 
-        -- Core frame scripts
         frame:SetScript("OnClick", Unitframe.OnClick)
         frame:SetScript("OnShow", Unitframe.OnShow)
         frame:SetScript("OnEvent", Unitframe.OnEvent)
@@ -1243,34 +1129,41 @@ SimpleUI:AddModule("Unitframes", function()
         frame:SetScript("OnDragStart", Unitframe.OnDragStart)
         frame:SetScript("OnDragStop", Unitframe.OnDragStop)
 
-        -- Happiness icon scripts
         frame.happinessIcon:SetScript("OnEnter", Unitframe.HappinessOnEnter)
         frame.happinessIcon:SetScript("OnLeave", Unitframe.HappinessOnLeave)
         frame.happinessIcon:SetScript("OnEvent", Unitframe.SetPetHappiness)
 
-
         visibilityscan.frames[frame] = true
     end
 
+    -------------------------------------------------------------------------------
+    -- STATUS BAR ANIMATIONS
+    -- Smooth transitions for health/power bars.
+    -------------------------------------------------------------------------------
     do
         local animations = {}
         local stepsize, val
         local width, height, point
         local animateFrame = CreateFrame("Frame", "SimpleUIStatusBarAnimation", UIParent)
+
         animateFrame:SetScript("OnUpdate", function()
-            if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Instant" then
+            local profile = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize
+            if profile == "Instant" then
                 stepsize = 0
-            elseif SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Very Fast" then
+            elseif profile == "Very Fast" then
                 stepsize = 2
-            elseif SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Fast" then
+            elseif profile == "Fast" then
                 stepsize = 4
-            elseif SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Normal" then
+            elseif profile == "Normal" then
                 stepsize = 6
-            elseif SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Average" then
+            elseif profile == "Average" then
                 stepsize = 8
-            elseif SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize == "Slow" then
+            elseif profile == "Slow" then
                 stepsize = 10
+            else
+                stepsize = 6
             end
+
             for bar in pairs(animations) do
                 if not bar.val_ or abs(bar.val_ - bar.val) < stepsize or bar.instant then
                     bar:DisplayValue(bar.val)
@@ -1283,53 +1176,28 @@ SimpleUI:AddModule("Unitframes", function()
 
         local handlers = {
             ["DisplayValue"] = function(self, val)
-                val = val > self.max and self.max or val
-                val = val < self.min and self.min or val
-
-                -- remove animation queue
+                val = max(self.min, min(self.max, val))
                 if val == self.val_ then
                     animations[self] = nil
                 end
-
-                -- set current visible value
                 self.val_ = val
 
                 if self.mode == "vertical" then
-                    height = self:GetHeight()
-                    height = height / self:GetEffectiveScale()
-                    point = height / (self.max - self.min) * (val - self.min)
-
-                    -- keep values in limits
-                    point = math.min(height, point)
-                    point = math.max(0, point)
-
-                    -- set point to zero if value and max is zero
+                    height = self:GetHeight() / self:GetEffectiveScale()
+                    point  = height / (self.max - self.min) * (val - self.min)
+                    point  = max(0, min(height, point))
                     if val == 0 then point = 0 end
-
-                    -- set status bar position/size
                     self.bar:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -height + point)
                     self.bar:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
-
-                    -- set background bar position/size
                     self.bg:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
                     self.bg:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, point)
                 else
-                    width = self:GetWidth()
-                    width = width / self:GetEffectiveScale()
+                    width = self:GetWidth() / self:GetEffectiveScale()
                     point = width / (self.max - self.min) * (val - self.min)
-
-                    -- keep values in limits
-                    point = math.min(width, point)
-                    point = math.max(0, point)
-
-                    -- set point to zero if value and max is zero
+                    point = max(0, min(width, point))
                     if val == 0 then point = 0 end
-
-                    -- set status bar position/size
                     self.bar:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
                     self.bar:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -width + point, 0)
-
-                    -- set background bar position/size
                     self.bg:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
                     self.bg:SetPoint("TOPLEFT", self, "TOPLEFT", point, 0)
                 end
@@ -1340,15 +1208,12 @@ SimpleUI:AddModule("Unitframes", function()
                 if smooth and self.max and self.max > 0 and smax > 0 and self.max ~= smax then
                     self.val_ = (self.val_ or self.val) / self.max * smax
                 end
-
                 self.min, self.max = smin, smax
                 self:DisplayValue(self.val_ or self.val)
             end,
 
             ["SetValue"] = function(self, val)
                 self.val = val or 0
-
-                -- start animation on difference
                 if self.val_ ~= self.val then
                     animations[self] = true
                 end
@@ -1374,6 +1239,11 @@ SimpleUI:AddModule("Unitframes", function()
                 self.mode = strlower(mode)
             end,
         }
+
+        -----------------------------------------------------------------------
+        -- FUNCTION: Unitframe.CreateStatusBar
+        -- Purpose : Factory for custom status bars with smooth animations.
+        -----------------------------------------------------------------------
         function Unitframe.CreateStatusBar(name, parent)
             local f = CreateFrame("Button", name, parent)
             f:EnableMouse(nil)
@@ -1386,116 +1256,109 @@ SimpleUI:AddModule("Unitframes", function()
             f.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
             f.bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
 
-            -- set some default values
             f.min, f.max, f.val = 0, 100, 0
-
-            -- add all handler functions to the object
-            for name, func in pairs(handlers) do
-                f[name] = func
+            for fn, func in pairs(handlers) do
+                f[fn] = func
             end
 
             return f
         end
     end
 
-    -----------------------------------------------
-    -- Function: UF:CreateUnitFrame
-    -- Purpose: Creates and initializes a unit frame with all associated components and configurations.
-    -- Parameters:
-    --    unit: The unit type (e.g., "player", "party").
-    --    id: The unit ID or index.
-    --    config: Configuration table for the frame.
-    --    tick: Tick value for energy updates.
-    -----------------------------------------------
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:CreateUnitFrame
+    -- Purpose : Create and initialize a new unit frame for the given unit/id.
+    -------------------------------------------------------------------------------
     function Unitframe:CreateUnitFrame(unit, id, config, tick)
-        -- Generate a frame name based on unit and ID
         local framename = ((unit == "party") and "Group" or (unit or "")) .. (id or "")
         unit, id = strlower(unit or ""), strlower(id or "")
         local isPlayerParty = (unit == "party" and id == "0")
 
         -- Correct specific unit values
-        if isPlayerParty then unit, id = "player", "" end
-        if unit == "partypet" and id == "0" then unit, id = "pet", "" end
-        if unit == "pettarget" and id == "0" then unit, id = "pettarget", "" end
-        if unit == "party0target" then unit, id = "target", "" end
+        if isPlayerParty then
+            unit, id = "player", ""
+        end
+        if unit == "partypet" and id == "0" then
+            unit, id = "pet", ""
+        end
+        if unit == "pettarget" and id == "0" then
+            unit, id = "pettarget", ""
+        end
+        if unit == "party0target" then
+            unit, id = "target", ""
+        end
 
-        -- Check for existing frame
         if _G["SimpleUI" .. framename] then return end
 
-        -- Create the main frame
-        local frame = CreateFrame("Button", "SimpleUI" .. framename, UIParent)
-        frame.UpdateFrameSize = Unitframe.UpdateFrameSize
+        local frame            = CreateFrame("Button", "SimpleUI" .. framename, UIParent)
+        frame.UpdateFrameSize  = Unitframe.UpdateFrameSize
         frame.UpdateVisibility = Unitframe.UpdateVisibility
-        frame.UpdateConfig = Unitframe.UpdateConfig
-        frame.EnableScripts = Unitframe.EnableScripts
-        frame.EnableEvents = Unitframe.EnableEvents
-        --frame.EnableClickCast = UF.EnableClickCast
-        frame.GetColor = Unitframe.GetColor
-        frame.label = unit
-        frame.id = id
-        frame.config = config
-        frame.tick = tick
-        frame.framename = framename
-        frame.IsPlayerParty = isPlayerParty
-        frame.EnergyTime = 0
-        frame.EnergyLast = 0
-        frame.firstRun = 1
+        frame.UpdateConfig     = Unitframe.UpdateConfig
+        frame.EnableScripts    = Unitframe.EnableScripts
+        frame.EnableEvents     = Unitframe.EnableEvents
+        frame.GetColor         = Unitframe.GetColor
+        frame.label            = unit
+        frame.id               = id
+        frame.config           = config
+        frame.tick             = tick
+        frame.framename        = framename
+        frame.IsPlayerParty    = isPlayerParty
+        frame.EnergyTime       = 0
+        frame.EnergyLast       = 0
+        frame.firstRun         = 1
 
-        -- Assign unit name for invalid units
         if not u.SimpleUIValidUnits[unit .. id] then
             frame.unitname, frame.label, frame.id = unit, "", ""
             frame.RegisterEvent = function() end
         end
 
-        -- Initialize core components
-        frame.health = CreateFrame("Frame", nil, frame)
-        frame.health.bar = Unitframe.CreateStatusBar(nil, frame.health)
-        --frame.health.bar:SetParent(frame.health)
+        frame.health           = CreateFrame("Frame", nil, frame)
+        frame.health.bar       = Unitframe.CreateStatusBar(nil, frame.health)
 
-        frame.power = CreateFrame("Frame", nil, frame)
-        frame.power.bar = Unitframe.CreateStatusBar(nil, frame.power)
-        --frame.power.bar:SetParent(frame.health)
+        frame.power            = CreateFrame("Frame", nil, frame)
+        frame.power.bar        = Unitframe.CreateStatusBar(nil, frame.power)
 
-        frame.TickerFrame = Unitframe:CreateTickerFrame(frame)
+        frame.TickerFrame      = Unitframe:CreateTickerFrame(frame)
 
-        frame.combat = CreateFrame("Frame", nil, frame.health)
-        frame.combat.tex = frame.combat:CreateTexture(nil, "OVERLAY")
+        frame.combat           = CreateFrame("Frame", nil, frame.health)
+        frame.combat.tex       = frame.combat:CreateTexture(nil, "OVERLAY")
 
-        frame.healthCenterTextName = frame:CreateFontString("Status", "OVERLAY", "GameFontNormalSmall")
-        frame.healthCenterTextHp = frame:CreateFontString("Status", "OVERLAY", "GameFontNormalSmall")
-        frame.powerCenterText = frame:CreateFontString('Status', "OVERLAY", "GameFontNormalSmall")
+        frame.healthCenterText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        frame.healthLeftText   = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        frame.healthRightText  = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        frame.powerLeftText    = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        frame.powerRightText   = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 
-        frame.level = CreateFrame("Frame", nil, frame)
-        frame.level.bg = frame.level:CreateTexture(nil, "BACKGROUND")
-        frame.level.overlay = frame.level:CreateTexture(nil, "OVERLAY")
-        frame.level.text = frame.level:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        frame.level            = CreateFrame("Frame", nil, frame)
+        frame.level.bg         = frame.level:CreateTexture(nil, "BACKGROUND")
+        frame.level.overlay    = frame.level:CreateTexture(nil, "OVERLAY")
+        frame.level.text       = frame.level:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 
 
-        frame.combatIcon = Unitframe:CreateIcon(frame)
-        frame.leaderIcon = Unitframe:CreateIcon(frame.health.bar)
-        frame.masterIcon = Unitframe:CreateIcon(frame.health.bar)
-        frame.pvpIcon = Unitframe:CreateIcon(frame.health.bar)
-        frame.raidIcon = Unitframe:CreateIcon(frame.health.bar)
-        frame.restIcon = Unitframe:CreateIcon(frame.level)
-        frame.happinessIcon = Unitframe:CreateIcon(frame.health.bar, "happiness")
+        frame.combatIcon          = Unitframe:CreateIcon(frame)
+        frame.leaderIcon          = Unitframe:CreateIcon(frame.health.bar)
+        frame.masterIcon          = Unitframe:CreateIcon(frame.health.bar)
+        frame.pvpIcon             = Unitframe:CreateIcon(frame.health.bar)
+        frame.raidIcon            = Unitframe:CreateIcon(frame.health.bar)
+        frame.restIcon            = Unitframe:CreateIcon(frame.level)
+        frame.happinessIcon       = Unitframe:CreateIcon(frame.health.bar, "happiness")
 
-        frame.portrait = CreateFrame("Frame", "SimpleUIPortrait" .. frame.label .. frame.id, frame)
-        frame.portrait.tex = frame.portrait:CreateTexture("SimpleUIPortraitTexture" .. frame.label .. frame.id, "OVERLAY")
-        frame.portrait.model = CreateFrame("PlayerModel", "SimpleUIPortraitModel" .. frame.label .. frame.id,
+        frame.portrait            = CreateFrame("Frame", "SimpleUIPortrait" .. frame.label .. frame.id, frame)
+        frame.portrait.tex        = frame.portrait:CreateTexture("SimpleUIPortraitTexture" .. frame.label .. frame.id,
+            "OVERLAY")
+        frame.portrait.model      = CreateFrame("PlayerModel", "SimpleUIPortraitModel" .. frame.label .. frame.id,
             frame.portrait)
         frame.portrait.model.next = CreateFrame("PlayerModel", nil, nil)
 
-        frame.portrait.sep = CreateFrame("Frame", nil, frame.health)
-        frame.portrait.sep.tex = frame.portrait.sep:CreateTexture(nil, "OVERLAY")
+        frame.portrait.sep        = CreateFrame("Frame", nil, frame.health)
+        frame.portrait.sep.tex    = frame.portrait.sep:CreateTexture(nil, "OVERLAY")
 
-        -- Finalize frame setup
         frame:Hide()
         frame:UpdateConfig()
         frame:UpdateFrameSize()
         frame:EnableScripts()
         frame:EnableEvents()
 
-        -- Visibility handling
         if frame.config.visible then
             SimpleUI_RefreshUnits(frame, "all")
             frame:EnableScripts()
@@ -1510,6 +1373,10 @@ SimpleUI:AddModule("Unitframes", function()
         return frame
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:CreateTickerFrame
+    -- Purpose : Constructs a small bar for energy ticks.
+    -------------------------------------------------------------------------------
     function Unitframe:CreateTickerFrame(parent)
         local ticker = CreateFrame("StatusBar", nil, parent.power.bar)
         ticker.Spark = ticker:CreateTexture(nil, "OVERLAY")
@@ -1517,6 +1384,10 @@ SimpleUI:AddModule("Unitframes", function()
         return ticker
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:CreateIcon
+    -- Purpose : Creates a small icon frame with a texture inside it.
+    -------------------------------------------------------------------------------
     function Unitframe:CreateIcon(parent, name)
         local icon = CreateFrame("Frame", nil, parent)
         icon.texture = icon:CreateTexture(nil, "BACKGROUND")
@@ -1526,9 +1397,14 @@ SimpleUI:AddModule("Unitframes", function()
         return icon
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:RefreshUnitState
+    -- Purpose : Applies alpha / fade-logic to the unit (offline, out-of-range).
+    -------------------------------------------------------------------------------
     function Unitframe:RefreshUnitState(unit)
         local alpha = unit.alpha_visible
         local unlock = SimpleUI.unlock and SimpleUI.unlock:IsShown() or nil
+        local unitstr = unit.label .. unit.id
 
         if not UnitIsConnected(unit.label .. unit.id) and not unlock then
             alpha = unit.alpha_offline
@@ -1541,10 +1417,7 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
 
-        if floor(unit:GetAlpha() * 10 + 0.5) == floor(alpha * 10 + 0.5) then
-            return
-        end
-
+        if floor(unit:GetAlpha() * 10 + 0.5) == floor(alpha * 10 + 0.5) then return end
         unit:SetAlpha(alpha)
 
         if unit.config.portrait == "bar" then
@@ -1552,15 +1425,19 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
-    function Unitframe:RefreshIndicators(unit)
-        if not unit.label or not unit.id then
-            return
-        end
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:RefreshIndicators
+    -- Purpose : Updates leader, master looter, PVP, rest, happiness, raid icons.
+    -------------------------------------------------------------------------------
 
+    function Unitframe:RefreshIndicators(unit)
+        if not unit.label or not unit.id then return end
         local unitstr = unit.label .. unit.id
 
         if unit.leaderIcon then
-            if unit.config.leaderIcon == true and UnitIsPartyLeader(unitstr) and (GetNumPartyMembers() > 0 or GetNumRaidMembers() > 0) then
+            if unit.config.leaderIcon
+                and UnitIsPartyLeader(unitstr)
+                and (GetNumPartyMembers() > 0 or GetNumRaidMembers() > 0) then
                 unit.leaderIcon:Show()
             else
                 unit.leaderIcon:Hide()
@@ -1572,9 +1449,8 @@ SimpleUI:AddModule("Unitframes", function()
                 unit.masterIcon:Hide()
             else
                 local method, group, raid = GetLootMethod()
-                local name = group and UnitName(group == 0 and "player" or "party" .. group) or
-                    raid and UnitName("raid" .. raid) or nil
-
+                local name = (group and UnitName(group == 0 and "player" or "party" .. group))
+                    or (raid and UnitName("raid" .. raid))
                 if name and name == UnitName(unitstr) then
                     unit.masterIcon:Show()
                 else
@@ -1592,7 +1468,8 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if unit.restIcon and unit:GetName() == "SimpleUIplayer" then
-            if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].player.showrest == true and UnitIsUnit(unitstr, "player") and IsResting() then
+            local showrest = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].player.showrest
+            if showrest and UnitIsUnit(unitstr, "player") and IsResting() then
                 unit.restIcon:Show()
             else
                 unit.restIcon:Hide()
@@ -1604,7 +1481,7 @@ SimpleUI:AddModule("Unitframes", function()
                 unit.happinessIcon:Hide()
             else
                 if UnitIsVisible("pet") then
-                    local happiness, damagePercentage, loyaltyRate = GetPetHappiness()
+                    local happiness, _, _ = GetPetHappiness()
                     if happiness == 1 then
                         unit.happinessIcon.texture:SetTexture("Interface\\PetPaperDollFrame\\UI-PetHappiness") -- UPDATE TO PET ICON
                         unit.happinessIcon.texture:SetTexCoord(0.375, 0.5625, 0, 0.359375)
@@ -1624,7 +1501,7 @@ SimpleUI:AddModule("Unitframes", function()
 
         if unit.raidIcon then
             local raidIcon = UnitName(unitstr) and GetRaidTargetIndex(unitstr)
-            if unit.config.raidIcon == true and raidIcon then
+            if unit.config.raidIcon and raidIcon then
                 SetRaidTargetIconTexture(unit.raidIcon.texture, raidIcon)
                 unit.raidIcon:Show()
             else
@@ -1632,6 +1509,11 @@ SimpleUI:AddModule("Unitframes", function()
             end
         end
     end
+
+    -------------------------------------------------------------------------------
+    -- FUNCTION: SimpleUI_RefreshUnits
+    -- Purpose : Main external function to refresh buff/debuff, portrait, health.
+    -------------------------------------------------------------------------------
 
     local SimpleUIDebuffColors = {
         ["Magic"]   = { 0.1, 0.7, 0.8, 1 },
@@ -1641,14 +1523,10 @@ SimpleUI:AddModule("Unitframes", function()
     }
 
     function SimpleUI_RefreshUnits(unit, element)
-        -- Validate unit and frame components
-        if not unit.label then return end
-        if not unit.health then return end
-        if not unit.power then return end
-        if not unit.id then unit.id = "" end
+        if not unit.label or not unit.health or not unit.power then return end
+        local unitstr = unit.label .. unit.id
         local element = element or ""
 
-        -- Skip scanning targets if scanning is active
         if unit.label == "target" or unit.label == "targettarget" or unit.label == "targettargettarget" then
             if SimpleUIScanActive == true then return end
         end
@@ -1656,26 +1534,19 @@ SimpleUI:AddModule("Unitframes", function()
         unit:UpdateVisibility()
         if not unit:IsShown() and not unit.visible then return end
 
-        local unitstr = unit.label .. unit.id
-        local rawBorder, default_border = 2, 2
         unit.namecache = UnitName(unitstr)
 
         if unit.buffs and (element == "all" or element == "aura") then
-            local texture, stacks
             for i = 1, unit.config.maxBuffs do
-                if not unit.buffs[i] then
-                    break
-                end
-
+                if not unit.buffs[i] then break end
+                local texture, stacks
                 if unit.label == "player" then
-                    stacks = GetPlayerBuffApplications(GetPlayerBuff(PLAYER_BUFF_START_ID + i, "HELPFUL"))
+                    stacks  = GetPlayerBuffApplications(GetPlayerBuff(PLAYER_BUFF_START_ID + i, "HELPFUL"))
                     texture = GetPlayerBuffTexture(GetPlayerBuff(PLAYER_BUFF_START_ID + i, "HELPFUL"))
                 else
                     texture, stacks = Unitframe:DetectBuff(unitstr, i)
                 end
-
                 unit.buffs[i].texture:SetTexture(texture)
-
                 if texture then
                     unit.buffs[i]:Show()
                     if stacks > 1 then
@@ -1690,12 +1561,41 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if unit.debuffs and (element == "all" or element == "aura") then
-            local texture, stacks, dtype
+            local pR         = unit.config.debuffsPerRow
+            local bpR        = unit.config.buffsPerRow
+            local buffrow    = 0
+            local reposition = (element == "all" and true or nil)
+            --[[             local texture, stacks, dtype
             local pR = unit.config.debuffsPerRow
-            local bpR = unit.config.buffsPerRow
+            local bpR = unit.config.buffsPerRow ]]
 
+            if unit.config.buffs == unit.config.debuffs then
+                for rowCheck = 0, 3 do
+                    local idx = rowCheck * bpR + 1
+                    if unit.buffs[idx] and unit.buffs[idx]:IsShown() then
+                        buffrow = buffrow + 1
+                    end
+                end
+            end
+
+            if buffrow ~= unit.lastbuffrow then
+                unit.lastbuffrow = buffrow
+                reposition = true
+            end
 
             local invert_h, invert_v, af
+            if unit.config.debuffs == "TOPLEFT" then
+                invert_h, invert_v, af = 1, 1, "BOTTOMLEFT"
+            elseif unit.config.debuffs == "BOTTOMLEFT" then
+                invert_h, invert_v, af = -1, 1, "TOPLEFT"
+            elseif unit.config.debuffs == "TOPRIGHT" then
+                invert_h, invert_v, af = 1, -1, "BOTTOMRIGHT"
+            elseif unit.config.debuffs == "BOTTOMRIGHT" then
+                invert_h, invert_v, af = -1, -1, "TOPRIGHT"
+            end
+
+
+            --[[             local invert_h, invert_v, af
             if unit.config.debuffs == "TOPLEFT" then
                 invert_h = 1
                 invert_v = 1
@@ -1712,9 +1612,8 @@ SimpleUI:AddModule("Unitframes", function()
                 invert_h = -1
                 invert_v = -1
                 af = "TOPRIGHT"
-            end
+            end ]]
 
-            local buffrow, reposition = 0, (element == "all" and true or nil)
             if unit.config.buffs == unit.config.debuffs then
                 if unit.buffs[0 * bpR + 1] and unit.buffs[0 * bpR + 1]:IsShown() then buffrow = buffrow + 1 end
                 if unit.buffs[1 * bpR + 1] and unit.buffs[1 * bpR + 1]:IsShown() then buffrow = buffrow + 1 end
@@ -1722,22 +1621,16 @@ SimpleUI:AddModule("Unitframes", function()
                 if unit.buffs[3 * bpR + 1] and unit.buffs[3 * bpR + 1]:IsShown() then buffrow = buffrow + 1 end
             end
 
-            if buffrow ~= unit.lastbuffrow then
-                unit.lastbuffrow = buffrow
-                reposition = true
-            end
-
             for i = 1, unit.config.maxDebuffs do
                 if not unit.debuffs[i] then break end
-
                 local row = floor((i - 1) / unit.config.debuffsPerRow)
-
                 if reposition then
                     unit.debuffs[i]:SetPoint(af, unit, unit.config.debuffs,
                         invert_v * (i - 1 - row * pR) * (2 * 2 + unit.config.debuffsize + 1) + 2,
                         invert_h * ((row + buffrow) * (2 * 2 + unit.config.debuffsize + 1) + (2 * 2 + 6)))
                 end
 
+                local texture, stacks, dtype
                 if unit.label == "player" then
                     texture = GetPlayerBuffTexture(GetPlayerBuff(PLAYER_BUFF_START_ID + i, "HARMFUL"))
                     stacks = GetPlayerBuffApplications(GetPlayerBuff(PLAYER_BUFF_START_ID + i, "HARMFUL"))
@@ -1745,7 +1638,6 @@ SimpleUI:AddModule("Unitframes", function()
                 else
                     texture, stacks, dtype = _G.UnitDebuff(unitstr, i)
                 end
-
                 unit.debuffs[i].texture:SetTexture(texture)
 
                 local r, g, b = DebuffTypeColor.none.r, DebuffTypeColor.none.g, DebuffTypeColor.none.b
@@ -1756,20 +1648,14 @@ SimpleUI:AddModule("Unitframes", function()
 
                 if texture then
                     unit.debuffs[i]:Show()
-
                     if unit:GetName() == "SimpleUIplayer" then
-                        --[[                         local timeleft = GetPlayerBuffTimeLeft(GetPlayerBuff(PLAYER_BUFF_START_ID + unit.debuffs[i].id, "HARMFUL"), "HARMFUL")
-                        if timeleft and timeleft > 0 then
-                            CooldownFrame_SetTimer(unit.debuffs[i].cd, GetTime(), 10, 1)
-                        end ]]
                     elseif E.libdebuff then
-                        local name, rank, texture, stacks, dtype, duration, timeleft = E.libdebuff:UnitDebuff(unitstr, i)
+                        local _, _, _, _, _, duration, timeleft = E.libdebuff:UnitDebuff(unitstr, i)
                         if duration and timeleft then
                             local startTime = GetTime() + timeleft - duration
                             CooldownFrame_SetTimer(unit.debuffs[i].cd, startTime, duration, 1)
                         end
                     end
-
                     if stacks > 1 then
                         unit.debuffs[i].stacks:SetText(stacks)
                     else
@@ -1782,12 +1668,12 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if unit.portrait and (element == "all" or element == "portrait") then
+            -- Fix first-load rendering issues by forcing model hide->show
             if unit.firstLoad == nil then
-                -- Hide the model initially and delay the setup to fix first-load rendering issues
                 unit.portrait.model:Hide()
                 if unit and unit.portrait then
                     unit.portrait.model:Show()
-                    unit.firstLoad = true -- Reset the flag after first initialization
+                    unit.firstLoad = true
                     unit.portrait.model:SetCamera(0)
                     unit.portrait.model:SetUnit(unitstr)
                 end
@@ -1810,7 +1696,6 @@ SimpleUI:AddModule("Unitframes", function()
                         unit.portrait.model:Show()
                         unit.portrait.model:SetModelScale(4.25)
                         unit.portrait.model:SetPosition(0, 0, -1)
-                        --unit.portrait.model:SetCamera(0)
                         unit.portrait.model:SetModel("Interface\\Button\\talktomequestionmark.mdx")
                     end
                 else
@@ -1826,7 +1711,8 @@ SimpleUI:AddModule("Unitframes", function()
                         unit.portrait.model.update = unitstr
                     else
                         unit.portrait.model.next:SetUnit(unitstr)
-                        if unit.portrait.model.lastUnit ~= UnitName(unitstr) or unit.portrait.model:GetModel() ~= unit.portrait.model.next:GetModel() then
+                        if unit.portrait.model.lastUnit ~= UnitName(unitstr)
+                            or unit.portrait.model:GetModel() ~= unit.portrait.model.next:GetModel() then
                             unit.portrait.model.update = unitstr
                         end
                     end
@@ -1834,26 +1720,10 @@ SimpleUI:AddModule("Unitframes", function()
             end
         end
 
-        --[[         local health, healthMax = UnitHealth(unitstr), UnitHealthMax(unitstr)
-        local power, powerMax = UnitMana(unitstr), UnitManaMax(unitstr)
-
-        if unit.config.invertHealth == true then
-            health = healthMax - health
-            if power == 0 or power == nil then
-                powerMax = 100
-                power = powerMax - power
-            else
-                power = powerMax - power
-            end
-        end ]]
-
-
-        -- Refresh Health and Power
         Unitframe:RefreshHealthAndPower(unit, unitstr)
 
-
-        local baseR, baseG, baseB = 0.2, 0.2, 0.2 -- Default values for r, g, b
-        local r, g, b, a = baseR, baseG, baseB, 1
+        local baseR, baseG, baseB = 0.2, 0.2, 0.2
+        --local r, g, b, a = baseR, baseG, baseB, 1
         if UnitIsPlayer(unitstr) then
             local _, class = UnitClass(unitstr)
             local color = RAID_CLASS_COLORS[class]
@@ -1863,20 +1733,23 @@ SimpleUI:AddModule("Unitframes", function()
         elseif unit.label == "pet" then
             local happiness = GetPetHappiness()
             if happiness == 1 then
-                baseR, baseG, baseB = 1, 0, 0 -- Unhappy pet
+                baseR, baseG, baseB = 1, 0, 0
             elseif happiness == 2 then
-                baseR, baseG, baseB = 1, 1, 0 -- Neutral pet
+                baseR, baseG, baseB = 1, 1, 0
             else
-                baseR, baseG, baseB = 0, 1, 0 -- Happy pet
+                baseR, baseG, baseB = 0, 1, 0
             end
         else
-            local color = UnitReactionColor[UnitReaction(unitstr, "player")]
+            local reaction = UnitReaction(unitstr, "player")
+            local color = reaction and UnitReactionColor[reaction]
             if color then
                 baseR, baseG, baseB = color.r, color.g, color.b -- Store reaction color
             end
         end
 
-        if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].pastel then
+        local pastelOn = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].pastel
+        local r, g, b
+        if pastelOn then
             r, g, b = (baseR + 0.5) * 0.5, (baseG + 0.5) * 0.5, (baseB + 0.5) * 0.5
         else
             r, g, b = baseR, baseG, baseB -- Use original colors if pastel is off
@@ -1890,13 +1763,13 @@ SimpleUI:AddModule("Unitframes", function()
             unit.health.bar:SetStatusBarBackgroundColor(0.2, 0.2, 0.2, 1)
         end
 
-        local mana = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].manaColor
-        local rage = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].rageColor
-        local energy = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].energyColor
-        local focus = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].focusColor
+        local mana           = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].manaColor
+        local rage           = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].rageColor
+        local energy         = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].energyColor
+        local focus          = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].focusColor
 
         local pR, pG, pB, pA = .5, .5, .5, 1
-        local utype = UnitPowerType(unitstr)
+        local utype          = UnitPowerType(unitstr)
         if utype == 0 then
             pR, pG, pB, pA = mana.r, mana.g, mana.b, mana.a
         elseif utype == 1 then
@@ -1916,21 +1789,18 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if UnitName(unitstr) then
-            unit.healthCenterTextName:SetText(Unitframe:GetStatusValue(unit, "namecenter"))
-            unit.healthCenterTextHp:SetText(Unitframe:GetStatusValue(unit, "hpcenter"))
+            unit.healthCenterText:SetText(Unitframe:GetStatusValue(unit, "healthcenter"))
+            unit.healthLeftText:SetText(Unitframe:GetStatusValue(unit, "healthleft"))
+            unit.healthRightText:SetText(Unitframe:GetStatusValue(unit, "healthright"))
+            unit.powerLeftText:SetText(Unitframe:GetStatusValue(unit, "powerleft"))
+            unit.powerRightText:SetText(Unitframe:GetStatusValue(unit, "powerright"))
             unit.level.text:SetText(Unitframe:GetStatusValue(unit, "level"))
 
-            unit.powerCenterText:SetText(Unitframe:GetStatusValue(unit, "powercenter"))
-
-            unit.healthCenterTextName:SetFont(
-                SimpleUI_GetFont(unit.config.font),
-                unit.config.fontSize, "OUTLINE")
-            unit.healthCenterTextHp:SetFont(
-                SimpleUI_GetFont(unit.config.font),
-                unit.config.fontSize, "OUTLINE")
-            unit.powerCenterText:SetFont(
-                SimpleUI_GetFont(unit.config.font),
-                unit.config.fontSize, "OUTLINE")
+            unit.healthCenterText:SetFont(SimpleUI_GetFont(unit.config.font), unit.config.fontSize, "OUTLINE")
+            unit.healthLeftText:SetFont(SimpleUI_GetFont(unit.config.font), unit.config.fontSize, "OUTLINE")
+            unit.healthRightText:SetFont(SimpleUI_GetFont(unit.config.font), unit.config.fontSize, "OUTLINE")
+            unit.powerLeftText:SetFont(SimpleUI_GetFont(unit.config.font), unit.config.fontSize, "OUTLINE")
+            unit.powerRightText:SetFont(SimpleUI_GetFont(unit.config.font), unit.config.fontSize, "OUTLINE")
 
             if UnitIsTapped(unitstr) and not UnitIsTappedByPlayer(unitstr) then
                 unit.health.bar:SetStatusBarColor(0.5, 0.5, 0.5, 0.5)
@@ -1938,19 +1808,22 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if (unit.label == "player" and unit.IsPlayerParty == false) or unit.label == "target" then
-            unit.level.text:SetFont(
-                SimpleUI_GetFont(unit.config.font), 12, "OUTLINE")
+            unit.level.text:SetFont(SimpleUI_GetFont(unit.config.font), 12, "OUTLINE")
         else
-            unit.level.text:SetFont(
-                SimpleUI_GetFont(unit.config.font), 10, "OUTLINE")
+            unit.level.text:SetFont(SimpleUI_GetFont(unit.config.font), 10, "OUTLINE")
         end
 
         Unitframe:RefreshUnitState(unit)
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe:RefreshHealthAndPower
+    -- Purpose : Updates the actual numeric values for health/power bars.
+    -------------------------------------------------------------------------------
+
     function Unitframe:RefreshHealthAndPower(unit, unitstr)
         local health, healthMax = UnitHealth(unitstr), UnitHealthMax(unitstr)
-        local power, powerMax = UnitMana(unitstr), UnitManaMax(unitstr)
+        local power, powerMax   = UnitMana(unitstr), UnitManaMax(unitstr)
 
         if unit.config.invertHealth then
             health = healthMax - health
@@ -1967,6 +1840,10 @@ SimpleUI:AddModule("Unitframes", function()
         unit.power.bar:SetMinMaxValues(0, powerMax)
         unit.power.bar:SetValue(power)
     end
+
+    -------------------------------------------------------------------------------
+    -- CLICK ACTIONS
+    -------------------------------------------------------------------------------
 
     local buttons = {
         [1] = "LeftButton",
@@ -1988,10 +1865,10 @@ SimpleUI:AddModule("Unitframes", function()
     end
 
     function Unitframe:ClickAction(button)
-        local label = this.label or ""
-        local id = this.id or ""
-        local unitstr = label .. id
-        local showmenu = button == "RightButton" and true or nil
+        local label    = this.label or ""
+        local id       = this.id or ""
+        local unitstr  = label .. id
+        local showmenu = (button == "RightButton")
 
         if SpellIsTargeting() then
             if button == "RightButton" then
@@ -2042,6 +1919,10 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
+    -------------------------------------------------------------------------------
+    -- NAME / LEVEL / STATUS DISPLAY HELPERS
+    -------------------------------------------------------------------------------
+
     local function abbrevname(t)
         return string.sub(t, 1, 1) .. ". "
     end
@@ -2064,9 +1945,7 @@ SimpleUI:AddModule("Unitframes", function()
 
     function Unitframe:GetLevelString(unitstr)
         local level = UnitLevel(unitstr)
-        if level == -1 then
-            level = "?"
-        end
+        if level == -1 then level = "?" end
 
         local elite = UnitClassification(unitstr)
         if elite == "worldboss" then
@@ -2078,32 +1957,20 @@ SimpleUI:AddModule("Unitframes", function()
         elseif elite == "rare" then
             level = level .. "R"
         end
-
         return level
     end
 
     function Unitframe:GetStatusValue(unit, pos)
-        if not pos or not unit then
-            return
-        end
-
+        if not pos or not unit then return end
         local config = unit.config["txt" .. pos]
         local unitstr = unit.label .. unit.id
-        local frame = unit[pos .. "Text"]
-
         if pos == "center" and not config then
             config = "unit"
         end
 
-        local unitMana, unitmanaMax = UnitMana(unitstr), UnitManaMax(unitstr)
+        local unitMana, unitmanaMax     = UnitMana(unitstr), UnitManaMax(unitstr)
         local unitHealth, unitHealthMax = UnitHealth(unitstr), UnitHealthMax(unitstr)
-        local rhp, rhpmax = unitHealth, unitHealthMax
-
-        --if E.libhealth and E.libhealth.enabled then
-        --rhp, rhpmax = E.libhealth:GetUnitHealth(unitstr)
-        --elseif unit.label == "target" and (MobHealth3 or MobHealthFrame) and MobHealth_GetTargetCurHP() then
-        --rhp, rhpmax = MobHealth_GetTargetCurHP(), MobHealth_GetTargetMaxHP()
-        --end
+        local rhp, rhpmax               = unitHealth, unitHealthMax
 
         if config == "unit" then
             local name = unit:GetColor() .. Unitframe:GetNameString(unitstr)
@@ -2115,7 +1982,6 @@ SimpleUI:AddModule("Unitframes", function()
         elseif config == "unitrev" then
             local name = unit:GetColor("unit") .. Unitframe:GetNameString(unitstr)
             local level = unit:GetColor("level") .. Unitframe:GetLevelString(unitstr)
-
             return name .. "  " .. level
         elseif config == "name" then
             return unit:GetColor("unit") .. Unitframe:GetNameString(unitstr)
@@ -2129,8 +1995,6 @@ SimpleUI:AddModule("Unitframes", function()
             else
                 return ""
             end
-
-            -- health
         elseif config == "health" then
             return unit:GetColor("health") .. u.Abbreviate(rhp)
         elseif config == "healthmax" then
@@ -2186,8 +2050,6 @@ SimpleUI:AddModule("Unitframes", function()
             end
         elseif config == "healthminmax" then
             return unit:GetColor("health") .. u.Abbreviate(rhp) .. "/" .. u.Abbreviate(rhpmax)
-
-            -- mana/power/focus
         elseif config == "power" then
             return unit:GetColor("power") .. u.Abbreviate(unitMana)
         elseif config == "powermax" then
@@ -2203,7 +2065,6 @@ SimpleUI:AddModule("Unitframes", function()
                 return unit:GetColor("power") .. u.Abbreviate(power)
             end
         elseif config == "powerdyn" then
-            -- show percentage when only mana is less than 100%
             if unitMana ~= unitmanaMax and UnitPowerType(unitstr) == 0 then
                 return unit:GetColor("power") ..
                     u.Abbreviate(unitMana) .. " - " .. ceil(unitMana / unitmanaMax * 100) .. "%"
@@ -2217,17 +2078,20 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
+    -------------------------------------------------------------------------------
+    -- FUNCTION: Unitframe.GetColor
+    -- Purpose : Returns an RGB hex color based on preset (e.g., "health", "class").
+    -------------------------------------------------------------------------------
+
     function Unitframe.GetColor(self, preset)
-        local config = self.config
         local unitstr = self.label .. self.id
         local r, g, b = 1, 1, 1
 
         if preset == "unit" then
             if UnitIsPlayer(unitstr) then
                 local _, class = UnitClass(unitstr)
-                if RAID_CLASS_COLORS[class] then
-                    r, g, b = RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
-                end
+                local c = RAID_CLASS_COLORS[class]
+                if c then r, g, b = c.r, c.g, c.b end
             elseif self.label == "pet" then
                 local happiness = GetPetHappiness()
                 if happiness == 1 then
@@ -2238,18 +2102,17 @@ SimpleUI:AddModule("Unitframes", function()
                     r, g, b = 0, 1, 0
                 end
             else
-                local color = UnitReactionColor[UnitReaction(unitstr, "player")]
+                local reaction = UnitReaction(unitstr, "player")
+                local color = reaction and UnitReactionColor[reaction]
                 if color then r, g, b = color.r, color.g, color.b end
             end
         elseif preset == "class" then
             local _, class = UnitClass(unitstr)
-            if RAID_CLASS_COLORS[class] then
-                r, g, b = RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
-            end
+            local c = RAID_CLASS_COLORS[class]
+            if c then r, g, b = c.r, c.g, c.b end
         elseif preset == "reaction" then
-            r = UnitReactionColor[UnitReaction(unitstr, "player")].r
-            g = UnitReactionColor[UnitReaction(unitstr, "player")].g
-            b = UnitReactionColor[UnitReaction(unitstr, "player")].b
+            local c = UnitReactionColor[UnitReaction(unitstr, "player")]
+            r, g, b = c.r, c.g, c.b
         elseif preset == "health" then
             if UnitHealthMax(unitstr) > 0 then
                 r, g, b = u.GetColorGradient(UnitHealth(unitstr) / UnitHealthMax(unitstr))
@@ -2257,27 +2120,22 @@ SimpleUI:AddModule("Unitframes", function()
                 r, g, b = 0, 0, 0
             end
         elseif preset == "power" then
-            r = ManaBarColor[UnitPowerType(unitstr)].r
-            g = ManaBarColor[UnitPowerType(unitstr)].g
-            b = ManaBarColor[UnitPowerType(unitstr)].b
+            local c = ManaBarColor[UnitPowerType(unitstr)]
+            r, g, b = c.r, c.g, c.b
         elseif preset == "level" then
-            r = GetDifficultyColor(UnitLevel(unitstr)).r
-            g = GetDifficultyColor(UnitLevel(unitstr)).g
-            b = GetDifficultyColor(UnitLevel(unitstr)).b
+            local dc = GetDifficultyColor(UnitLevel(unitstr))
+            r, g, b = dc.r, dc.g, dc.b
         else
             r, g, b = 1.0, 0.8196, 0.0
         end
 
         if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].pastel == true then
-            r = (r + .75) * .5
-            g = (g + .75) * .5
-            b = (b + .75) * .5
+            r, g, b = (r + .75) * .5, (g + .75) * .5, (b + .75) * .5
         end
 
         return u.Rgbhex(r, g, b)
     end
 
-    --Debuff Helpers
     local function GetDebuffTypesForClass(class)
         local debuffTypes = {
             MAGE = { "Curse" },
@@ -2333,6 +2191,10 @@ SimpleUI:AddModule("Unitframes", function()
         end
     end
 
+    -------------------------------------------------------------------------------
+    -- RAID & PARTY SETUP / HOOKS FOR PLAYER, TARGET, PET, ETC.
+    -------------------------------------------------------------------------------
+
     if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].player.enable then
         if not _G["SimpleUIplayer"] then
             PlayerFrame:Hide()
@@ -2344,7 +2206,6 @@ SimpleUI:AddModule("Unitframes", function()
             Unitframe.player:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOM", -75, 200)
             u.UpdateRelocator(Unitframe.player)
         end
-
         SimpleUI.player = Unitframe.player
 
         UnitPopupButtons["RESET_INSTANCES_FIX"] = { text = RESET_INSTANCES, dist = 0 }
@@ -2373,7 +2234,6 @@ SimpleUI:AddModule("Unitframes", function()
             Unitframe.target:SetPoint("BOTTOMLEFT", UIParent, "BOTTOM", 75, 200)
             Unitframe.target:UpdateFrameSize()
         end
-
         SimpleUI.target = Unitframe.target
     end
 
@@ -2509,14 +2369,14 @@ SimpleUI:AddModule("Unitframes", function()
                 Unitframe.raid[i]:UpdateFrameSize()
             end
 
-            local i = 1
-            local width = Unitframe.raid[1]:GetWidth() + 2 * default_border
-            local height = Unitframe.raid[1]:GetHeight() + 2 * default_border
-            local layout = Unitframe.raid[1].config.raidlayout
-            local padding = tonumber(Unitframe.raid[1].config.raidpadding) * u.GetPerfectPixel()
-            local fill = Unitframe.raid[1].config.raidfill
+            local i          = 1
+            local width      = Unitframe.raid[1]:GetWidth() + 2 * 2
+            local height     = Unitframe.raid[1]:GetHeight() + 2 * 2
+            local layout     = Unitframe.raid[1].config.raidlayout
+            local padding    = tonumber(Unitframe.raid[1].config.raidpadding) * u.GetPerfectPixel()
+            local fill       = Unitframe.raid[1].config.raidfill
             local _, _, x, y = string.find(layout, "(.+)x(.+)")
-            x, y = tonumber(x), tonumber(y)
+            x, y             = tonumber(x), tonumber(y)
 
             if fill == "VERTICAL" then
                 for r = 1, x do
