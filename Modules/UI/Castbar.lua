@@ -184,7 +184,12 @@ SimpleUI:AddModule("Castbar", function()
 
                     -- set texture
                     if texture and this.showicon then
-                        local size = this.unit == "player" and db.height or this:GetHeight()
+                        local size 
+                        if this.unit == "player" and (db.anchorToFrame or db.anchorToFrame == 1) then
+                            size = db.height
+                        else
+                            size = this:GetHeight()
+                        end
                         this.icon:Show()
                         this.icon:SetHeight(size)
                         this.icon:SetWidth(size)
@@ -349,7 +354,7 @@ SimpleUI:AddModule("Castbar", function()
         else
             holder:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
         end
-        if not db.anchorToFrame then
+        if not db.anchorToFrame or db.anchorToFrame == 0 then
             playerCast:ClearAllPoints()
             playerCast:SetPoint("BOTTOMLEFT", _G.SimpleUIplayer, "TOPLEFT", 0, 25)
             playerCast:SetWidth(_G.SimpleUIplayer:GetWidth())

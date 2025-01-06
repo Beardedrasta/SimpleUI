@@ -1708,10 +1708,13 @@ SimpleUI:AddModule("Unitframes", function()
                     unit.portrait.model:SetUnit(unitstr)
                 end
             end
-            if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].always2D == true then
+            if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].always2D == 1 then
+                local CIT = CLASS_ICON_TCOORDS
                 unit.portrait.tex:Show()
                 unit.portrait.model:Hide()
-                SetPortraitTexture(unit.portrait.tex, unitstr)
+                local _, class = UnitClass(unitstr)
+                unit.portrait.tex:SetTexture("Interface\\AddOns\\SimpleUI\\Media\\Textures\\UI-Classes-Circles")
+                unit.portrait.tex:SetTexCoord(unpack(CIT[class]))
             else
                 if not UnitIsVisible(unitstr) or not UnitIsConnected(unitstr) then
                     if unit.config.portrait == "bar" then

@@ -1624,6 +1624,16 @@ function SimpleUI_Config_EditUnitFrame_Create()
         100
     )
 
+    SimpleUI_Config_EditFrame_CreateHeaderOption(g, "Portrait")
+
+    g.o[g.num] = SimpleUI_Config_EditFrame_CreateCheckBoxOption(g, "Class Icon Portrait", function()
+        return SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].always2D
+    end, function(s)
+        SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].always2D = s
+        SimpleUI_UpdateCastbarConfig()
+    end, "Class Icon Portrait", "Set the portrait to class icons")
+
+
 
     SimpleUI_Config_EditFrame_CreateHeaderOption(g, "Group")
 

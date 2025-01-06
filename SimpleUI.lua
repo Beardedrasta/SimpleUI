@@ -19,7 +19,8 @@ Description: A modular UI enhancement addon with profile management, commands, a
 --Constants
 SimpleUI = CreateFrame("Frame", nil, UIParent);
 
-local SimpleUIDBVersion = 1
+local SimpleUIDBVersion = 2
+--oficial release value = 2
 SimpleUIVersion = "1.0.0-alpha"
 local __off
 
