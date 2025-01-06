@@ -7,12 +7,12 @@ Description: Modular functions for handling colors, abbreviations, status bars, 
 -- Setup up Environment
 
 SUI_Util = {}
-local U = SimpleUI.Util
 
 local _G = getfenv(0)
 setmetatable(SUI_Util, { __index = getfenv(1) })
 setfenv(1, SUI_Util)
 
+local U = SimpleUI.Util
 UnitXPSP3 = pcall(UnitXP, "inSight", "player", "player");
 SuperWoW = SpellInfo ~= nil;
 
@@ -267,26 +267,32 @@ end
 -- 5) Range Checking
 --------------------------------------------------------------------------------
 
-local function getDistance(x1, z1, x2, z2)
-    local dx, dz = (x2 - x1), (z2 - z1)
-    return Square(dx * dx + dz * dz)
+local function getDistance(x1, z1, x2, z2, y1, y2)
+    local dx = x2 - x1
+    local dz = z2 - z1
+    local dy = y2 - y1
+    return math.sqrt(dx*dx + dz*dz + dy*dy)
 end
 
 local function GetDistanceBetween_SuperWow(unit1, unit2)
-    local x1, z1 = UnitPosition(unit1)
-    local x2, z2 = UnitPosition(unit2)
+    local x1, z1, y1 = UnitPosition(unit1)
+    local x2, z2, y2 = UnitPosition(unit2)
     if not x1 or not x2 then
         return 0
     end
-    return getDistance(x1, z1, x2, z2)
+    return getDistance(x1, z1, x2, z2, y1, y2)
 end
 
 -- Check if a unit is in range (~35-40 yards) using various checks
 function UnitInRange(unit)
     if not UnitExists(unit) or not UnitIsVisible(unit) then
         return nil
+    elseif SuperWoW then
+        local distance = GetDistanceBetween_SuperWow("player", unit)
+        if distance and distance < 40 then
+            return 1
+        end
     elseif UnitXPSP3 then
-        -- Extended API check
         local distance = UnitXP("distanceBetween", "player", unit)
         if distance and distance < 40 then
             return 1

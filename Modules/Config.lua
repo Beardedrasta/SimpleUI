@@ -68,7 +68,9 @@ function SimpleUI_Config_CreateWindow()
     txt:SetPoint("LEFT", button, "LEFT", 1, 0)
 
     button:SetScript("OnClick", function()
-        if grid:IsShown() then
+        local isShown = grid:IsShown()
+        SimpleUI_ToggleCastbarOverlay(isShown)
+        if isShown then
             grid:Hide()
             txt:SetText("Show Grid")
         else
@@ -1590,6 +1592,38 @@ function SimpleUI_Config_EditUnitFrame_Create()
     g.o[g.num - 1] = function()
         UIDropDownMenu_SetText(SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].stepsize, speed)
     end
+
+    g.o[g.num] = SimpleUI_Config_EditFrame_CreateCheckBoxOption(g, "Detach Castbar", function()
+        return SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.anchorToFrame
+    end, function(s)
+        SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.anchorToFrame = s
+        SimpleUI_UpdateCastbarConfig()
+    end, "Detach Castbar", "Detach the castbar from the player frame")
+
+    g.o[g.num] = SimpleUI_Config_EditFrame_CreateEditNumberOption(
+        g,
+        "Castbar Width",
+        function() return SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.width end,
+        function(s)
+            SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.width = s
+            SimpleUI_UpdateCastbarConfig()
+        end,
+        0,
+        500
+    )
+
+    g.o[g.num] = SimpleUI_Config_EditFrame_CreateEditNumberOption(
+        g,
+        "Castbar Height",
+        function() return SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.height end,
+        function(s)
+            SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.height = s
+            SimpleUI_UpdateCastbarConfig()
+        end,
+        0,
+        100
+    )
+
 
     SimpleUI_Config_EditFrame_CreateHeaderOption(g, "Group")
 

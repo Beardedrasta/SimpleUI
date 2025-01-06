@@ -8,10 +8,11 @@ SimpleUI:AddModule("Castbar", function()
     if SimpleUI:IsDisabled("Castbar") then return end
 
     local db = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar
-    local font = db.font
-    local fontSize = db.fontSize
-    local border = 2
-    local castTexture = SimpleUI_GetTexture(db.texture)
+    local font = db.font;
+    local fontSize = db.fontSize;
+    local border = 2;
+    local castTexture = SimpleUI_GetTexture(db.texture);
+    local anchoredToFrame = db.anchorToFrame;
 
     ----------------------------------------------------------------
     -- 1) HELPER: CREATE THE FRAME
@@ -25,6 +26,12 @@ SimpleUI:AddModule("Castbar", function()
 
         cb.unitstr = unitstr
         cb.unitname = unitname
+
+        --cb.holder.overlay = cb.holder:CreateTexture(nil, "OVERLAY")
+        --cb.holder.overlay:SetAllPoints(cb.holder)
+        --cb.holder.overlay:SetTexture(0, 0.5, 0.9, 0.6)
+
+
 
         ----------------------------------------------------------------
         -- 1A) ICON FRAME & TEXTURES
@@ -136,7 +143,7 @@ SimpleUI:AddModule("Castbar", function()
             -- Attempt to read cast info (or channel info if no cast)
             ----------------------------------------------------------------
 
---[[             local cast, nameSubtext, text, texture, startTime, endTime, isTradeSkill = UnitCastingInfo(query)
+            --[[             local cast, nameSubtext, text, texture, startTime, endTime, isTradeSkill = UnitCastingInfo(query)
             if not cast then
                 channel, nameSubtext, text, texture, startTime, endTime, isTradeSkill = UnitChannelInfo(query)
                 cast = channel
@@ -177,7 +184,7 @@ SimpleUI:AddModule("Castbar", function()
 
                     -- set texture
                     if texture and this.showicon then
-                        local size = this:GetHeight()
+                        local size = this.unit == "player" and db.height or this:GetHeight()
                         this.icon:Show()
                         this.icon:SetHeight(size)
                         this.icon:SetWidth(size)
@@ -293,34 +300,133 @@ SimpleUI:AddModule("Castbar", function()
     CastingBarFrame:UnregisterAllEvents()
     CastingBarFrame:Hide()
 
-    local function SetupCastbar(cbFrame, unitTag, fallbackName)
+    local function SetupCastbar(cbFrame, unitTag, target)
         cbFrame.showicon  = (db.showicon == 1)
         cbFrame.showname  = (db.showname == 1)
         cbFrame.showtimer = (db.showtimer == 1)
         cbFrame.showlag   = (db.showlag == 1)
         cbFrame.showrank  = (db.showrank == 1)
         cbFrame.spacing   = border * 2 + -1 * u.GetPerfectPixel()
+        cbFrame.unit = unitTag
 
         local anchorFrame = SimpleUI[unitTag]
-        if anchorFrame then
-            local width = anchorFrame:GetWidth()
-            cbFrame:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 0, 25)
-            cbFrame:SetWidth(width)
-        else
-            local fallbackWidth = (db.width ~= -1) and db.width or 200
-            cbFrame:SetPoint("CENTER", 0, -200)
-            cbFrame:SetWidth(fallbackWidth)
-        end
+        local width = anchorFrame:GetWidth()
+        cbFrame:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 0, 25)
+        cbFrame:SetWidth(width)
 
         if db.height ~= -1 then
-            cbFrame:SetHeight(db.height)
+            cbFrame:SetHeight(20)
         end
     end
 
-    Castbar.bar.player           = CreateCastbar("SimpleUIPlayerCastbar", UIParent, "player")
-    SetupCastbar(Castbar.bar.player, "player", "SimpleUI.player")
+    Castbar.bar.player   = CreateCastbar("SimpleUIPlayerCastbar", UIParent, "player")
+    local playerCast     = Castbar.bar.player
+    playerCast.showicon  = (db.showicon == 1)
+    playerCast.showname  = (db.showname == 1)
+    playerCast.showtimer = (db.showtimer == 1)
+    playerCast.showlag   = (db.showlag == 1)
+    playerCast.showrank  = (db.showrank == 1)
+    playerCast.spacing   = border * 2 + -1 * u.GetPerfectPixel()
+    playerCast.unit = "player"
 
-    Castbar.bar.target           = CreateCastbar("SimpleUITargetCastbar", UIParent, "target")
-    SetupCastbar(Castbar.bar.target, "target", "SimpleUI.target")
+    local holder         = CreateFrame("Frame", Castbar.bar.player:GetName() .. "CastbarHolder", UIParent)
+    holder:EnableMouse(true)
+    holder:SetMovable(true)
+    holder:SetClampedToScreen(true)
+    holder:SetWidth(db.width)
+    holder:SetHeight(db.height)
+    holder:Hide()
+    holder:SetFrameLevel(Castbar.bar.player:GetFrameLevel() + 1)
+    holder:SetBackdrop({
+        bgFile = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\SimpleUI-Default.blp",
+    })
+
+    do
+        local pos = db.Pos
+        if pos then
+            holder:ClearAllPoints()
+            holder:SetPoint(pos.point, pos.parentName, pos.relativePoint, pos.xOfs, pos.yOfs)
+        else
+            holder:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
+        end
+        if not db.anchorToFrame then
+            playerCast:ClearAllPoints()
+            playerCast:SetPoint("BOTTOMLEFT", _G.SimpleUIplayer, "TOPLEFT", 0, 25)
+            playerCast:SetWidth(_G.SimpleUIplayer:GetWidth())
+        else
+            playerCast:ClearAllPoints()
+            playerCast:SetAllPoints(holder)
+        end
+    end
+
+    holder:RegisterForDrag("LeftButton")
+    holder:SetScript("OnMouseDown", function()
+        holder:StartMoving()
+    end)
+
+    holder:SetScript("OnMouseUp", function()
+        holder:StopMovingOrSizing()
+
+
+        local point, relativeTo, relativePoint, xOfs, yOfs = this:GetPoint()
+        local parentName = "UIParent"
+
+        db.Pos = {
+            point = point,
+            parentName = parentName,
+            relativePoint = relativePoint,
+            xOfs = xOfs,
+            yOfs = yOfs,
+        }
+
+        --[[         if SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar.anchorToFrame == 0 then
+            local castbar = Castbar.bar.player
+            castbar:ClearAllPoints()
+            castbar:SetPoint(point, parentName, relativePoint, xOfs, yOfs)
+        end ]]
+    end)
+
+
+    Castbar.bar.holder = holder
+
+
+    Castbar.bar.target = CreateCastbar("SimpleUITargetCastbar", UIParent, "target")
+    SetupCastbar(Castbar.bar.target, "target", "SimpleUI.target", true)
+
+    function Castbar:UpdateVisibility(logic)
+        local func = logic
+        if func and holder then
+            holder:Hide()
+        else
+            holder:Show()
+        end
+    end
+
+    function Castbar:UpdateConfig()
+        playerCast:SetWidth(db.width)
+        playerCast:SetHeight(db.height)
+        holder:SetWidth(db.width)
+        holder:SetHeight(db.height)
+    end
+
 
 end)
+
+function SimpleUI_ToggleCastbarOverlay(logic)
+    Castbar:UpdateVisibility(logic)
+end
+
+function SimpleUI_UpdateCastbarConfig()
+    Castbar:UpdateConfig()
+end
+
+--[[ function SimpleUI_RemoveCastFromPlayer()
+    local db = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].castbar
+    if db.anchorToFrame == 0 then
+        Castbar.bar.player:ClearAllPoints()
+        Castbar.bar.player:SetPoint("BOTTOMLEFT", _G.SimpleUIplayer, "TOPLEFT", 0, 25)
+        Castbar.bar.player:SetWidth(_G.SimpleUIplayer:GetWidth())
+    else
+        Castbar.bar.player:SetAllPoints(_G.SimpleUIPlayerCastbarCastbarHolder)
+    end
+end ]]

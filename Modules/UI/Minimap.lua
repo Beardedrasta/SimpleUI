@@ -566,8 +566,8 @@ SimpleUI:AddModule("Minimap", function()
             edgeSize = 14,
         })
         if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-            button.Bg:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            button.Border:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.9)
+            button.Bg:SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            button.Border:SetBackdropBorderColor(0.15, 0.15, 0.15, 0.9)
         else
             button.Bg:SetVertexColor(1, 1, 1, 1)
             button.Border:SetBackdropBorderColor(1, 1, 1, 1)
@@ -715,7 +715,7 @@ SimpleUI:AddModule("Minimap", function()
             Minimap.Background = background
 
             if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-                border:SetVertexColor(0.2, 0.2, 0.2, 0.9)
+                border:SetVertexColor(0.1, 0.1, 0.1, 0.9)
             else
                 border:SetVertexColor(1, 1, 1, 1)
             end

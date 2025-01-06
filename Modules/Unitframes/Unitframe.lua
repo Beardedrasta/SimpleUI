@@ -554,7 +554,7 @@ SimpleUI:AddModule("Unitframes", function()
 
         local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
         if useDarkUI then
-            frame.portrait.sep.tex:SetVertexColor(0.3, 0.3, 0.3, 0.9)
+            frame.portrait.sep.tex:SetVertexColor(0.15, 0.15, 0.15, 0.9)
         else
             frame.portrait.sep.tex:SetVertexColor(1, 1, 1, 1)
         end
@@ -727,7 +727,7 @@ SimpleUI:AddModule("Unitframes", function()
         local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
         if useDarkUI then
             frame.level.bg:SetVertexColor(0.15, 0.15, 0.15, 0.9)
-            frame.level.overlay:SetVertexColor(0.3, 0.3, 0.3, 0.9)
+            frame.level.overlay:SetVertexColor(0.15, 0.15, 0.15, 0.9)
         else
             frame.level.bg:SetVertexColor(0.25, 0.25, 0.25, 1)
             frame.level.overlay:SetVertexColor(1, 1, 1, 1)
@@ -1785,12 +1785,21 @@ SimpleUI:AddModule("Unitframes", function()
             r, g, b = baseR, baseG, baseB -- Use original colors if pastel is off
         end
 
+        local darkOn = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
         if unit.config.invertHealth then
-            unit.health.bar:SetStatusBarColor(0.2, 0.2, 0.2, 1)
+            if darkOn then
+                unit.health.bar:SetStatusBarColor(0.05, 0.05, 0.05, 1)
+            else
+                unit.health.bar:SetStatusBarColor(0.2, 0.2, 0.2, 1)
+            end
             unit.health.bar:SetStatusBarBackgroundColor(r, g, b, 1)
         else
             unit.health.bar:SetStatusBarColor(r, g, b, 1)
-            unit.health.bar:SetStatusBarBackgroundColor(0.2, 0.2, 0.2, 1)
+            if darkOn then
+                unit.health.bar:SetStatusBarBackgroundColor(0.05, 0.05, 0.05, 1)
+            else
+                unit.health.bar:SetStatusBarBackgroundColor(0.2, 0.2, 0.2, 1)
+            end
         end
 
         local mana           = SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Unitframes"].manaColor
@@ -1811,11 +1820,19 @@ SimpleUI:AddModule("Unitframes", function()
         end
 
         if unit.config.invertHealth then
-            unit.power.bar:SetStatusBarColor(0.2, 0.2, 0.2, pA)
+            if darkOn then
+                unit.power.bar:SetStatusBarColor(0.05, 0.05, 0.05, pA)
+            else
+                unit.power.bar:SetStatusBarColor(0.2, 0.2, 0.2, pA)
+            end
             unit.power.bar:SetStatusBarBackgroundColor(pR, pG, pB, pA)
         else
+            if darkOn then
+                unit.power.bar:SetStatusBarBackgroundColor(0.05, 0.05, 0.05, 1)
+            else
+                unit.power.bar:SetStatusBarBackgroundColor(0.2, 0.2, 0.2, 1)
+            end
             unit.power.bar:SetStatusBarColor(pR, pG, pB, pA)
-            unit.power.bar:SetStatusBarBackgroundColor(0.2, 0.2, 0.2, 1)
         end
 
         if UnitName(unitstr) then

@@ -523,7 +523,7 @@ SimpleUI:AddModule("Micromenu", function()
     Microbar.microbutton.texture:SetHeight(102)
 
     if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-        Microbar.microbutton.texture:SetVertexColor(0.3, 0.3, 0.3, 0.9)
+        Microbar.microbutton.texture:SetVertexColor(0.15, 0.15, 0.15, 0.9)
     else
         Microbar.microbutton.texture:SetVertexColor(1, 1, 1, 1)
     end
@@ -745,10 +745,10 @@ SimpleUI:AddModule("Micromenu", function()
         end
         if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
             SimplebagMain:GetNormalTexture():SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            sUIbag1:GetNormalTexture():SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            sUIbag2:GetNormalTexture():SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            sUIbag3:GetNormalTexture():SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            sUIbag4:GetNormalTexture():SetVertexColor(0.3, 0.3, 0.3, 0.9)
+            sUIbag1:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            sUIbag2:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            sUIbag3:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            sUIbag4:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, 0.9)
         else
             SimplebagMain:GetNormalTexture():SetVertexColor(1, 1, 1, 1)
             sUIbag1:GetNormalTexture():SetVertexColor(1, 1, 1, 1)

@@ -11,6 +11,7 @@ SimpleUI:AddModule("Actionbar", function()
     -- 1) MODULE TABLE & BASIC SETUP
     ----------------------------------------------------------------
     local Actionbar = CreateFrame("Frame")
+    local _G = getfenv(0)
 
     -- Utility Functions --------------------------------------------
 
@@ -75,7 +76,7 @@ SimpleUI:AddModule("Actionbar", function()
         end
 
         if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-            btnNormal:SetVertexColor(0.3, 0.3, 0.3, 1)
+            btnNormal:SetVertexColor(0.15, 0.15, 0.15, 1)
         else
             btnNormal:SetVertexColor(1, 1, 1, 1)
         end
@@ -136,17 +137,17 @@ SimpleUI:AddModule("Actionbar", function()
 
         UIPARENT_MANAGED_FRAME_POSITIONS["MultiBarBottomLeft"] = nil
 
-        NUM_MULTIBAR_BUTTONS   = 10
-        NUM_ACTIONBAR_BUTTONS  = 10
-        NUM_BONUS_ACTION_SLOTS = NUM_ACTIONBAR_BUTTONS
-        BONUSACTIONBAR_XPOS    = 0
-        BONUSACTIONBAR_YPOS    = 37
-        NUM_ACTIONBAR_PAGES    = 1
+        NUM_MULTIBAR_BUTTONS                                   = 10
+        NUM_ACTIONBAR_BUTTONS                                  = 10
+        NUM_BONUS_ACTION_SLOTS                                 = NUM_ACTIONBAR_BUTTONS
+        BONUSACTIONBAR_XPOS                                    = 0
+        BONUSACTIONBAR_YPOS                                    = 37
+        NUM_ACTIONBAR_PAGES                                    = 1
 
-        LEFT_ACTIONBAR_PAGE  = config.settings.multiPages[1]
-        RIGHT_ACTIONBAR_PAGE = config.settings.multiPages[2]
+        LEFT_ACTIONBAR_PAGE                                    = config.settings.multiPages[1]
+        RIGHT_ACTIONBAR_PAGE                                   = config.settings.multiPages[2]
 
-        local framesToHide = {
+        local framesToHide                                     = {
             "MainMenuXPBarTexture0",
             "MainMenuXPBarTexture1",
             "MainMenuXPBarTexture2",
@@ -190,7 +191,7 @@ SimpleUI:AddModule("Actionbar", function()
 
         MainMenuExpBar:SetScript('OnEnter', function()
             local factionName, _, _, _, _ = GetWatchedFactionInfo()
---[[             local lvl = UnitLevel('player')
+            --[[             local lvl = UnitLevel('player')
             local restedStr
             if GetXPExhaustion and GetXPExhaustion() ~= nil then
                 rest = string.format("Rested: |cff90ee90%d|r - (|cff1a9fc0%.0f%%|r)", GetXPExhaustion(),
@@ -261,12 +262,12 @@ SimpleUI:AddModule("Actionbar", function()
                 prevPositions[6] = { 'LEFT', abOut[i - 1], 'RIGHT', 4, 0 }
             end
 
-            SimpleUI_SetupButton(ab[i],    config.actionBar.default, 37, config.texturePath.slot, 64, prevPositions[1])
-            SimpleUI_SetupButton(bab[i],   nil,                      37, config.texturePath.slot, 64, prevPositions[2])
-            SimpleUI_SetupButton(mblb[i],  nil,                      37, config.texturePath.slot, 64, prevPositions[3])
-            SimpleUI_SetupButton(mbrb[i],  nil,                      37, config.texturePath.slot, 64, prevPositions[4])
-            SimpleUI_SetupButton(abTop[i], nil,                      37, config.texturePath.slot, 64, prevPositions[5])
-            SimpleUI_SetupButton(abOut[i], nil,                      37, config.texturePath.slot, 64, prevPositions[6])
+            SimpleUI_SetupButton(ab[i], config.actionBar.default, 37, config.texturePath.slot, 64, prevPositions[1])
+            SimpleUI_SetupButton(bab[i], nil, 37, config.texturePath.slot, 64, prevPositions[2])
+            SimpleUI_SetupButton(mblb[i], nil, 37, config.texturePath.slot, 64, prevPositions[3])
+            SimpleUI_SetupButton(mbrb[i], nil, 37, config.texturePath.slot, 64, prevPositions[4])
+            SimpleUI_SetupButton(abTop[i], nil, 37, config.texturePath.slot, 64, prevPositions[5])
+            SimpleUI_SetupButton(abOut[i], nil, 37, config.texturePath.slot, 64, prevPositions[6])
         end
 
         MultiBarBottomLeft:ClearAllPoints()
@@ -447,13 +448,13 @@ SimpleUI:AddModule("Actionbar", function()
 
         local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
         if useDarkUI then
-            Actionbar.xpBar.textureMiddle:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            Actionbar.ArtFrame.leftCap:SetVertexColor(0.4, 0.4, 0.4, 0.9)
-            Actionbar.ArtFrame.rightCap:SetVertexColor(0.4, 0.4, 0.4, 0.9)
-            Actionbar.stanceBar.textureLeft:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            Actionbar.stanceBar.textureRight:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            Actionbar.stanceBar.textureMiddle:SetVertexColor(0.3, 0.3, 0.3, 0.9)
-            Actionbar.ArtFrame.leftTop:SetVertexColor(0.3, 0.3, 0.3, 0.9)
+            Actionbar.xpBar.textureMiddle:SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            Actionbar.ArtFrame.leftCap:SetVertexColor(0.25, 0.25, 0.25, 0.9)
+            Actionbar.ArtFrame.rightCap:SetVertexColor(0.25, 0.25, 0.25, 0.9)
+            Actionbar.stanceBar.textureLeft:SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            Actionbar.stanceBar.textureRight:SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            Actionbar.stanceBar.textureMiddle:SetVertexColor(0.15, 0.15, 0.15, 0.9)
+            Actionbar.ArtFrame.leftTop:SetVertexColor(0.15, 0.15, 0.15, 0.9)
         else
             Actionbar.xpBar.textureMiddle:SetVertexColor(1, 1, 1, 1)
             Actionbar.ArtFrame.leftCap:SetVertexColor(1, 1, 1, 1)
@@ -464,6 +465,39 @@ SimpleUI:AddModule("Actionbar", function()
             Actionbar.ArtFrame.leftTop:SetVertexColor(1, 1, 1, 1)
         end
     end
+
+    local function ZoomButtonTexture(button)
+        local icon = button.icon or _G[button:GetName() .. "Icon"]
+        if icon then
+            -- SetTexCoord to zoom in (values adjusted inward)
+            icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        end
+    end
+
+    local function ZoomAllActionButtonTextures()
+        for i = 1, NUM_ACTIONBAR_BUTTONS do
+            local button = _G["ActionButton" .. i]
+            if button then
+                ZoomButtonTexture(button)
+            end
+        end
+    
+        for i = 1, NUM_PET_ACTION_SLOTS do
+            local button = _G["PetActionButton" .. i]
+            if button then
+                ZoomButtonTexture(button)
+            end
+        end
+    
+        for i = 1, NUM_SHAPESHIFT_SLOTS do
+            local button = _G["ShapeshiftButton" .. i]
+            if button then
+                ZoomButtonTexture(button)
+            end
+        end
+    end
+
+    ZoomAllActionButtonTextures()
 
     ----------------------------------------------------------------
     -- 5) OVERRIDE/HOOK BLIZZARD FUNCTIONS
@@ -497,9 +531,9 @@ SimpleUI:AddModule("Actionbar", function()
         OLD_ShowPetActionBar()
 
         if PetHasActionBar() and PetActionBarFrame.showgrid == 0
-           and (PetActionBarFrame.mode ~= "show")
-           and not PetActionBarFrame.locked
-           and not PetActionBarFrame.ctrlPressed
+            and (PetActionBarFrame.mode ~= "show")
+            and not PetActionBarFrame.locked
+            and not PetActionBarFrame.ctrlPressed
         then
             Actionbar.stanceBar:Show()
         end
@@ -552,7 +586,7 @@ SimpleUI:AddModule("Actionbar", function()
             local normalTex = getglobal(actBtn:GetName() .. "NormalTexture")
             if normalTex then
                 if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-                    normalTex:SetVertexColor(0.4, 0.4, 0.4, 1)
+                    normalTex:SetVertexColor(0.25, 0.25, 0.25, 1)
                 else
                     normalTex:SetVertexColor(1, 1, 1, 1)
                 end
@@ -566,7 +600,7 @@ SimpleUI:AddModule("Actionbar", function()
             local shiftTex = getglobal(shiftBtn:GetName() .. "NormalTexture")
             if shiftTex then
                 if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-                    shiftTex:SetVertexColor(0.4, 0.4, 0.4, 1)
+                    shiftTex:SetVertexColor(0.25, 0.25, 0.25, 1)
                 else
                     shiftTex:SetVertexColor(1, 1, 1, 1)
                 end
@@ -577,7 +611,7 @@ SimpleUI:AddModule("Actionbar", function()
         local tex = getglobal(button:GetName() .. "NormalTexture")
         if tex then
             if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
-                tex:SetVertexColor(0.4, 0.4, 0.4, 1)
+                tex:SetVertexColor(0.25, 0.25, 0.25, 1)
             else
                 tex:SetVertexColor(1, 1, 1, 1)
             end
@@ -603,14 +637,26 @@ SimpleUI:AddModule("Actionbar", function()
     local OLD_ActionButton_Update = ActionButton_Update
     ActionButton_Update = function()
         OLD_ActionButton_Update()
+        ZoomButtonTexture(this)
+
         local texture = GetActionTexture(ActionButton_GetPagedID(this))
         if texture then
-            this:SetNormalTexture(SimpleUI_GetTexture("SlotBorder"))
             if (this.isBonus) then
                 this.texture = texture
             end
+            if not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI then
+                this:SetNormalTexture(SimpleUI_GetTexture("SlotDark"))
+                this:GetNormalTexture():SetVertexColor(0.25, 0.25, 0.25, 1)
+            else
+                this:SetNormalTexture(SimpleUI_GetTexture("SlotBorder"))
+                this:GetNormalTexture():SetVertexColor(1, 1, 1, 1)
+            end
         else
             this:SetNormalTexture(SimpleUI_GetTexture("SlotBg"))
+        end
+        local border = this:GetHighlightTexture()
+        if border then
+            border:SetVertexColor(0.15, 0.15, 0.15, 1)
         end
     end
 
@@ -669,6 +715,9 @@ SimpleUI:AddModule("Actionbar", function()
     ActionbarWatcher:RegisterEvent("ADDON_LOADED")
     ActionbarWatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
     ActionbarWatcher:RegisterEvent('VARIABLES_LOADED')
+    ActionbarWatcher:RegisterEvent("PLAYER_TARGET_CHANGED")
+    ActionbarWatcher:RegisterEvent("ACTIONBAR_UPDATE_STATE")
+    ActionbarWatcher:RegisterEvent("ACTIONBAR_UPDATE_USABLE")
 
     ActionbarWatcher:SetScript("OnEvent", function()
         if event == 'UPDATE_BONUS_ACTIONBAR' then
@@ -691,12 +740,11 @@ SimpleUI:AddModule("Actionbar", function()
             SimpleUI_Update_Actionbar()
         elseif event == "ADDON_LOADED" then
             SimpleUI_Update_Actionbar()
-            SimpleUI_SystemMessage("Actionbars loaded")
         end
     end)
 
 
---[[     UIParent_ManageFramePositions = function()
+    --[[     UIParent_ManageFramePositions = function()
         local yOffsetFrames = {};
         local xOffsetFrames = {};
 
