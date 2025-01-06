@@ -272,7 +272,15 @@ SimpleUI:AddModule("Unitframes", function()
             frame.background:SetFrameStrata("BACKGROUND")
             frame.background.backdrop.border:SetFrameLevel(frame.health.bar:GetFrameLevel() + 1)
             frame.background.backdrop.border:SetFrameStrata("MEDIUM")
+
+            local useDarkUI = not SimpleUIDB.Profiles[SimpleUIProfile]["Entities"]["Modules"].disabled.DarkUI
+            if useDarkUI then
+                frame.background.backdrop:SetBackdropColor(0.15, 0.15, 0.15, 1)
+            else
+                frame.background.backdrop:SetBackdropColor(1, 1, 1, 1)
+            end
         end
+
 
         Unitframe:ConfigureHealthBar(frame, cfg, BORDER_SIZE)         -- Health Bar Configuration
         Unitframe:ConfigurePowerBar(frame, cfg, BORDER_SIZE, spacing) -- Power Bar Configuration
