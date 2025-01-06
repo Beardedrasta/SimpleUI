@@ -26,6 +26,7 @@ SimpleUITextures = {
     ExpMinimal = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\ExpMinimal",
     ExpFull = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\ExpFull",
     SlotBorder = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\SlotBorder",
+    SlotDark = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\SlotBorder-Dark",
     SlotBg = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\SlotBg",
     BagBg = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\bagBg",
     Stancebar = "Interface\\AddOns\\SimpleUI\\Media\\Textures\\Stancebar",
